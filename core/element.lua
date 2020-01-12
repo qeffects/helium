@@ -2,11 +2,13 @@
 local path = string.sub(..., 1, string.len(...) - string.len(".core.element"))
 local helium = require(path .. ".dummy")
 
+---@class context
 local context = {}
 context.__index = context
 
 local activeContext
 
+---@param elem element
 function context.new(elem)
 	local ctx = setmetatable({view = elem.view, element = elem}, context)
 
@@ -46,7 +48,7 @@ function context:unset()
 	end
 end
 
-
+---@class element
 local element = {}
 element.__index = element
 
@@ -165,7 +167,9 @@ function element:setup()
 				end
 			end
 		end
-
+		---@param initial any
+		---@return any
+		---@return function
 		self.classlessData.useState = function (initial)
 			self.settings.indice = self.settings.indice + 1
 			local indice         = self.settings.indice
@@ -244,6 +248,11 @@ end
 
 --External functions
 --Acts as the entrypoint for beginning rendering
+---@param params any
+---@param x number
+---@param y number
+---@param w number
+---@param h number
 function element:draw(params, x, y, w, h)
 	self.view.x = x or self.view.x
 	self.view.y = y or self.view.y

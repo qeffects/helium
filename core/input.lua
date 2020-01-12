@@ -7,9 +7,11 @@ local input={
 	activeEvents  = {}
 }
 
+---@class subscription
 local subscription   = {}
 subscription.__index = subscription
 
+---@class inputContext
 local context   = {}
 context.__index = context
 
@@ -66,6 +68,14 @@ function context:destroy()
 	end
 end
 
+---@param x number
+---@param y number
+---@param w number
+---@param h number
+---@param eventType string
+---@param callback function
+---@param doff boolean
+---@return subscription
 function subscription.create(x, y, w, h, eventType, callback, doff)
 	local sub
 	if activeContext then
