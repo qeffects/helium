@@ -55,7 +55,8 @@ element.__index = element
 setmetatable(element,{
 		__call = function(cls, ...)
 			local self
-			if type(...)=='function' then
+			local func, loader = ...
+			if type(func)=='function' then
 				self = setmetatable({}, element)
 				self.renderer  = ...
 				self.classless = true
@@ -64,7 +65,14 @@ setmetatable(element,{
 				self.classless = false
 			end
 
-			self:new(...)
+			if loader then
+				local function f(newFunc)
+					self:reLoader(newFunc)
+				end
+				loader(f)
+			end
+
+			self:new()
 
 			return self
 		end
@@ -76,6 +84,7 @@ function element:renderer() print('no renderer') end
 function element:updater() end
 
 function element:constructor() end
+
 
 --Control functions
 --The new function that should be used for element creation
@@ -107,6 +116,12 @@ function element:new()
 		self.classlessState = {}
 		self.classlessData  = {}
 	end
+end
+
+--Hotswapping code
+function element:reLoader(newFunc)
+	self.renderer = newFunc
+	self.context:bubbleUpdate()
 end
 
 --Called once dimensions are validated
@@ -156,13 +171,12 @@ function element:setup()
 	--Classless rendering
 	if self.classless then
 		self.classlessData.loadEffect = function (func)
-			if self.classlessData.loadCaptured then
-				return unpack(self.classlessData.loadCaptured)
-			else
+			if self.classlessData.loaded and self.classlessData.loadCaptured then
+				return self.classlessData.loadCaptured
+			elseif not self.classlessData.loaded then
 				self.classlessData.loadCaptured = func()
-				if type(self.classlessData.loadCaptured) == 'table' then
-					return unpack(self.classlessData.loadCaptured)
-				elseif self.classlessData.loadCaptured then
+				self.classlessData.loaded = true
+				if self.classlessData.loadCaptured then
 					return self.classlessData.loadCaptured
 				end
 			end
@@ -184,7 +198,11 @@ function element:setup()
 					self.classlessState[indice].state = set
 					self.context:bubbleUpdate()
 				end
-				return self.classlessState[indice].state, self.classlessState[indice].setState
+
+				self.classlessState[indice].getState = function()
+					return self.classlessState[indice].state
+				end
+				return self.classlessState[indice].state, self.classlessState[indice].setState, self.classlessState[indice].getState
 			end
 		end
 	end
@@ -193,15 +211,28 @@ end
 function element:classlessRender()
 	self.inputContext:set()
 	self.settings.indice = 0
+	if type(self.renderer)=='function' then
+		local denv = getfenv(self.renderer)
+		denv['useState']   = self.classlessData.useState
+		denv['loadEffect'] = self.classlessData.loadEffect
 
-	local denv = getfenv(self.renderer)
-	denv['useState']   = self.classlessData.useState
-	denv['loadEffect'] = self.classlessData.loadEffect
+		local status,err = pcall(self.renderer,self.parameters, self.view.w, self.view.h)
 
-	self.renderer(self.parameters, self.view.w, self.view.h)
+		if not status then
+			love.graphics.setColor(1,0,0)
+			love.graphics.rectangle('line',0,0,self.view.w,self.view.h)
+			love.graphics.setColor(1,1,1)
+			love.graphics.printf("Error: "..err,0,0,self.view.w)
+		end
 
-	denv['useState']   = nil
-	denv['loadEffect'] = nil
+		denv['useState']   = nil
+		denv['loadEffect'] = nil
+	elseif type(self.renderer)=='string' then
+			love.graphics.setColor(1,0,0)
+			love.graphics.rectangle('line',0,0,self.view.w,self.view.h)
+			love.graphics.setColor(1,1,1)
+			love.graphics.printf("Error: "..self.renderer,0,0,self.view.w)
+	end
 	self.inputContext:unset()
 end
 

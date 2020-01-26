@@ -8,6 +8,7 @@ local helium  = require(path..".dummy")
 helium.utils = require(path..".utils")
 helium.element = require(path..".core.element")
 helium.input = require(path..".core.input")
+helium.debugLoader = require(path..".debugLoader")
 helium.elementBuffer = {}
 
 function helium.render()
@@ -99,7 +100,8 @@ function love.run()
 
 		-- Call update and draw
 		if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
-		helium.update()
+		helium.update(dt)
+		helium.debugLoader.update(dt)
 
 		if love.graphics and love.graphics.isActive() then
 			love.graphics.clear(love.graphics.getBackgroundColor())
