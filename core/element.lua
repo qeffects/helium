@@ -119,6 +119,7 @@ function element:new()
 end
 
 --Hotswapping code
+
 function element:reLoader(newFunc)
 	self.renderer = newFunc
 	self.context:bubbleUpdate()
