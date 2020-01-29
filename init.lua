@@ -5,10 +5,11 @@
 ----------------------------------------------------]]
 local path = ...
 local helium  = require(path..".dummy")
+helium.conf = require(path..".conf")
 helium.utils = require(path..".utils")
 helium.element = require(path..".core.element")
 helium.input = require(path..".core.input")
-helium.debugLoader = require(path..".debugLoader")
+helium.loader = require(path..".loader")
 helium.elementBuffer = {}
 
 function helium.render()
@@ -17,7 +18,11 @@ function helium.render()
 	end
 end
 
-function helium.update()
+function helium.update(dt)
+	if helium.conf.HOTSWAP then
+		helium.loader.update(dt)
+	end
+
 	local remove = false
 
 	for i, e in ipairs(helium.elementBuffer) do
@@ -60,61 +65,61 @@ end
 		end
 	end
 ]]
-function love.run()
+if helium.conf.AUTO_RUN then
+	function love.run()
 
-	if love.math then
-		love.math.setRandomSeed(os.time())
-	end
+		if love.math then
+			love.math.setRandomSeed(os.time())
+		end
 
-	if love.load then love.load(arg) end
+		if love.load then love.load(arg) end
 
-	-- We don't want the first frame's dt to include time taken by love.load.
-	if love.timer then love.timer.step() end
+		-- We don't want the first frame's dt to include time taken by love.load.
+		if love.timer then love.timer.step() end
 
-	local dt = 0
+		local dt = 0
 
-	-- Main loop time.
-	while true do
-		-- Process events.
-		if love.event then
-			love.event.pump()
-			for name, a,b,c,d,e,f in love.event.poll() do
-				if name == "quit" then
-					if not love.quit or not love.quit() then
-						return a
+		-- Main loop time.
+		while true do
+			-- Process events.
+			if love.event then
+				love.event.pump()
+				for name, a,b,c,d,e,f in love.event.poll() do
+					if name == "quit" then
+						if not love.quit or not love.quit() then
+							return a
+						end
+					end
+
+					if not(helium.input.eventHandlers[name]) or not(helium.input.eventHandlers[name](a, b, c, d, e, f)) then
+						love.handlers[name](a, b, c, d, e, f)
 					end
 				end
-
-				if not(helium.input.eventHandlers[name]) or not(helium.input.eventHandlers[name](a, b, c, d, e, f)) then
-					love.handlers[name](a, b, c, d, e, f)
-				end
 			end
+
+
+			-- Update dt, as we'll be passing it to update
+			if love.timer then
+				love.timer.step()
+				dt = love.timer.getDelta()
+			end
+
+			-- Call update and draw
+			if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
+			helium.update(dt)
+
+			if love.graphics and love.graphics.isActive() then
+				love.graphics.clear(love.graphics.getBackgroundColor())
+				love.graphics.origin()
+
+				if love.draw then love.draw() end
+				helium.render()
+				love.graphics.present()
+			end
+
+			if love.timer then love.timer.sleep(0.00001) end
 		end
-
-
-		-- Update dt, as we'll be passing it to update
-		if love.timer then
-			love.timer.step()
-			dt = love.timer.getDelta()
-		end
-
-		-- Call update and draw
-		if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
-		helium.update(dt)
-		helium.debugLoader.update(dt)
-
-		if love.graphics and love.graphics.isActive() then
-			love.graphics.clear(love.graphics.getBackgroundColor())
-			love.graphics.origin()
-			if love.draw then love.draw() end
-			helium.render()
-			love.graphics.present()
-		end
-
-
-		if love.timer then love.timer.sleep(0.00001) end
 	end
-
 end
 
 return helium

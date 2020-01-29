@@ -1,4 +1,5 @@
 --[[ Element superclass ]]
+--[[ Love is currently a hard dependency, although not in many places ]]
 local path = string.sub(..., 1, string.len(...) - string.len(".core.element"))
 local helium = require(path .. ".dummy")
 
@@ -58,11 +59,8 @@ setmetatable(element,{
 			local func, loader = ...
 			if type(func)=='function' then
 				self = setmetatable({}, element)
-				self.renderer  = ...
-				self.classless = true
-			elseif type(cls)=='table' then
-				self = setmetatable({}, cls)
-				self.classless = false
+				self.parentFunc = func
+				self.classless  = true
 			end
 
 			if loader then
@@ -105,32 +103,79 @@ function element:new()
 		inserted             = false
 	}
 
-	self.view = {
+	self.baseState = {}
+
+	self.baseView = {
 		x = 0,
 		y = 0,
 		w = 10,
 		h = 10,
 	}
 
+	self.view = setmetatable({},{
+		__index = function(t, index)
+			return self.baseView[index]
+		end,
+		__newindex = function(t, index, val)
+			if self.baseView[index] ~= val then
+				self.baseView[index] = val
+				self.context:bubbleUpdate()
+				self:updateInputCtx()
+			end
+		end
+	})
+
+	--Context makes sure element internals don't have to worry about absolute coordinates
+	self.inputContext = helium.input.newContext(self)
+	self.context = context.new(self)
+
 	if self.classless then
-		self.classlessState = {}
-		self.classlessData  = {}
+		self.classlessFuncs = {}
+		
+		--Allows manipulation of the arbitrary state
+		self.classlessFuncs.getState = function ()
+			return self.state
+		end
+	
+		--Allows manipulation of rendering width height, relative X and relative Y
+		self.classlessFuncs.getView = function ()
+			self.settings.restrictView = true
+			return self.view
+		end
 	end
 end
+
+function element:updateInputCtx()
+	self.inputContext:update()
+	if self.settings.canvasW then
+		if self.settings.canvasW < self.view.w or self.settings.canvasH < self.view.h then
+			self.settings.canvasW = self.view.w*1.25
+			self.settings.canvasH = self.view.h*1.25
+
+			self.canvas = love.graphics.newCanvas(self.view.w*1.25, self.view.h*1.25)
+		end
+	
+		self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.settings.canvasW, self.settings.canvasH)
+	end
+end
+
 
 --Hotswapping code
 
 function element:reLoader(newFunc)
-	self.renderer = newFunc
+	self.inputContext:set()
+	self.inputContext:destroy()
+
+	self.parentFunc = newFunc
+	self.renderer = self.parentFunc(self.parameters,self.state,self.view)
 	self.context:bubbleUpdate()
+
+	self.inputContext:unset()
 end
 
 --Called once dimensions are validated
 function element:setup()
-	self.state =
-		setmetatable(
-		{},
-		{
+	self.state = setmetatable({},{
 			__index = function(t, index)
 				return self.baseState[index]
 			end,
@@ -140,15 +185,11 @@ function element:setup()
 					self.context:bubbleUpdate()
 				end
 			end
-		}
-	)
+		})
 
-	self.parameters =
-		setmetatable(
-		{},
-		{
+	self.parameters = setmetatable({},{
 			__index = function(t, index)
-				return self.baseParams[index] or nil
+				return self.baseParams[index]
 			end,
 			__newindex = function(t, index, val)
 				if self.baseParams[index] ~= val then
@@ -156,68 +197,32 @@ function element:setup()
 					self.context:bubbleUpdate()
 				end
 			end
-		}
-	)
+		})
 
-	self.canvas = love.graphics.newCanvas(self.view.w, self.view.h)
 
-	self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.view.w, self.view.h)
+	self.settings.canvasW = self.view.w*1.25
+	self.settings.canvasH = self.view.h*1.25
 
-	--Context makes sure element internals don't have to worry about absolute coordinates
-	self.inputContext = helium.input.newContext(self)
-	self.context = context.new(self)
+	self.canvas = love.graphics.newCanvas(self.view.w*1.25, self.view.h*1.25)
+
+	self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.view.w*1.25, self.view.h*1.25)
+
+	if self.classless then
+		self.inputContext:set()
+		
+		self.renderer = self.parentFunc(self.parameters,self.state,self.view)
+
+		self.inputContext:unset()
+	end
 
 	self.settings.isSetup = true
-
-	--Classless rendering
-	if self.classless then
-		self.classlessData.loadEffect = function (func)
-			if self.classlessData.loaded and self.classlessData.loadCaptured then
-				return self.classlessData.loadCaptured
-			elseif not self.classlessData.loaded then
-				self.classlessData.loadCaptured = func()
-				self.classlessData.loaded = true
-				if self.classlessData.loadCaptured then
-					return self.classlessData.loadCaptured
-				end
-			end
-		end
-		---@param initial any
-		---@return any
-		---@return function
-		self.classlessData.useState = function (initial)
-			self.settings.indice = self.settings.indice + 1
-			local indice         = self.settings.indice
-
-			if self.classlessState[indice] and self.classlessState[indice].state then
-				return self.classlessState[indice].state, self.classlessState[indice].setState
-			else
-				self.classlessState[indice]       = {}
-				self.classlessState[indice].state = initial
-
-				self.classlessState[indice].setState  = function(set)
-					self.classlessState[indice].state = set
-					self.context:bubbleUpdate()
-				end
-
-				self.classlessState[indice].getState = function()
-					return self.classlessState[indice].state
-				end
-				return self.classlessState[indice].state, self.classlessState[indice].setState, self.classlessState[indice].getState
-			end
-		end
-	end
 end
 
 function element:classlessRender()
-	self.inputContext:set()
-	self.settings.indice = 0
-	if type(self.renderer)=='function' then
-		local denv = getfenv(self.renderer)
-		denv['useState']   = self.classlessData.useState
-		denv['loadEffect'] = self.classlessData.loadEffect
 
-		local status,err = pcall(self.renderer,self.parameters, self.view.w, self.view.h)
+	self.inputContext:set()
+	if type(self.renderer)=='function' then
+		local status, err = pcall(self.renderer)
 
 		if not status then
 			love.graphics.setColor(1,0,0)
@@ -226,15 +231,14 @@ function element:classlessRender()
 			love.graphics.printf("Error: "..err,0,0,self.view.w)
 		end
 
-		denv['useState']   = nil
-		denv['loadEffect'] = nil
 	elseif type(self.renderer)=='string' then
-			love.graphics.setColor(1,0,0)
-			love.graphics.rectangle('line',0,0,self.view.w,self.view.h)
-			love.graphics.setColor(1,1,1)
-			love.graphics.printf("Error: "..self.renderer,0,0,self.view.w)
+		love.graphics.setColor(1,0,0)
+		love.graphics.rectangle('line',0,0,self.view.w,self.view.h)
+		love.graphics.setColor(1,1,1)
+		love.graphics.printf("Error: "..self.renderer,0,0,self.view.w)
 	end
 	self.inputContext:unset()
+
 end
 
 function element:renderWrapper()
@@ -286,10 +290,12 @@ end
 ---@param w number
 ---@param h number
 function element:draw(params, x, y, w, h)
-	self.view.x = x or self.view.x
-	self.view.y = y or self.view.y
-	self.view.w = w or self.view.w
-	self.view.h = h or self.view.h
+	if not self.view.lock then
+		self.view.x = x or self.view.x
+		self.view.y = y or self.view.y
+		self.view.w = w or self.view.w
+		self.view.h = h or self.view.h
+	end
 
 	if params then
 		if type(params)=='table' and self.baseParams then

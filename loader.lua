@@ -1,5 +1,5 @@
 
-local path = string.sub(..., 1, string.len(...) - string.len(".debugLoader"))
+local path = string.sub(..., 1, string.len(...) - string.len(".loader"))
 local helium = require(path..'.dummy')
 local elements = {}
 local debugLoader = {}

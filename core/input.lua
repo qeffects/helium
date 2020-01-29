@@ -36,7 +36,7 @@ local activeContext
 
 ]]
 function input.newContext(element)
-	local ctx = setmetatable({view = element.view, subs = {}}, context)
+	local ctx = setmetatable({elem = element, subs = {}}, context)
 
 	return ctx
 end
@@ -44,13 +44,19 @@ end
 function context:set()
 	if activeContext then
 		self.parentCtx = activeContext
-		self.absX      = self.parentCtx.absX + self.view.x
-		self.absY      = self.parentCtx.absY + self.view.y
+		self.absX      = self.parentCtx.absX + self.elem.view.x
+		self.absY      = self.parentCtx.absY + self.elem.view.y
 		activeContext  = self
 	else
-		self.absX     = self.view.x
-		self.absY     = self.view.y
+		self.absX     = self.elem.view.x
+		self.absY     = self.elem.view.y
 		activeContext = self
+	end
+end
+
+function context:update()
+	for i, sub in ipairs(self.subs) do
+		sub:contextUpdate(self.absX,self.absY)
 	end
 end
 
@@ -64,7 +70,7 @@ end
 
 function context:destroy()
 	for i, e in ipairs(self.subs) do
-		self.subs:destroy()
+		e:destroy()
 	end
 end
 
@@ -84,10 +90,14 @@ function subscription.create(x, y, w, h, eventType, callback, doff)
 			y         = activeContext.absY + y,
 			w         = w,
 			h         = h,
+			ix        = x,
+			iy        = y,
 			eventType = eventType,
 			active    = doff or true,
 			callback  = callback
 		},subscription)
+
+		activeContext.subs[#activeContext.subs+1] = sub
 	else
 		sub = setmetatable({
 			x         = x,
@@ -118,8 +128,13 @@ function subscription:on()
 end
 
 function subscription:destroy()
-	self.destroy = true
+	self.destroyStat = true
 	self.active = false
+end
+
+function subscription:contextUpdate(absX, absY)
+	self.x = absX + self.ix
+	self.y = absY + self.iy
 end
 
 function subscription:update(x, y, w, h)
@@ -189,10 +204,23 @@ function input.eventHandlers.mousereleased(x, y, btn)
 				end
 			end
 		end
+	end	
+	
+	if input.subscriptions.dragged then
+		for index, sub in ipairs(input.subscriptions.dragged) do
+			if sub.currentEvent then
+				sub.currentEvent = false
+				captured         = true
+				if sub.cleanUp then
+					sub.cleanUp(x, y)
+				end
+			end
+		end
 	end
 
 	return captured
 end
+
 
 
 function input.eventHandlers.mousepressed(x, y, btn)
@@ -225,6 +253,18 @@ function input.eventHandlers.mousepressed(x, y, btn)
 
 			if succ and sub.active then
 				sub.cleanUp      = sub:emit(x, y, btn)
+				sub.currentEvent = true
+				captured         = true
+			end
+
+		end
+	end
+	
+	if input.subscriptions.dragged then
+		for index, sub in ipairs(input.subscriptions.dragged) do
+			local succ = sub:checkInside(x, y)
+
+			if succ and sub.active then
 				sub.currentEvent = true
 				captured         = true
 			end
@@ -264,7 +304,7 @@ function input.eventHandlers.keyreleased(btn)
 	return captured
 end
 
-function input.eventHandlers.mousemoved(x, y)
+function input.eventHandlers.mousemoved(x, y, dx, dy)
 	local captured = false
 
 	if input.subscriptions.hover then
@@ -282,6 +322,22 @@ function input.eventHandlers.mousemoved(x, y)
 					sub.cleanUp(x, y)
 				end
 			end
+		end
+	end
+
+	
+	if input.subscriptions.dragged then
+		for index, sub in ipairs(input.subscriptions.dragged) do
+			if sub.active and sub.currentEvent then
+				if not sub.cleanUp then
+					sub.cleanUp  = sub:emit(x, y, dx, dy)
+				else
+					sub:emit(x, y, dx, dy)
+				end
+				sub.currentEvent = true
+				captured         = true
+			end
+
 		end
 	end
 
