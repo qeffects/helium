@@ -5,40 +5,23 @@ local elements = {}
 local debugLoader = {}
 --Return level: 1--string; 2--chunk; 3--return value; default: element factory
 local function loader(path)
-	local succ = true
 
-	--File string
 	local fileContents, err = love.filesystem.read(path)
-	
-	if fileContents==nil then
-		print('Error loading ',path,':',tostring(err),', will continue watching!')
-		succ = false
-	end
+	local lastLoaded, status, func, succ, ret
 
-	local t, lastLoaded
-	if succ then
-		t = love.filesystem.getInfo(path)
-		lastLoaded = t['modtime']
-	end
-
-	--Chunk
-	local status, err
-	if succ then
-		status, err = pcall(loadstring,fileContents)
-	end
-
-	if status==false or status==nil then
-		print('Error compiling ',path,':',tostring(err),', will continue watching!')
-		succ = false
-	end
-
-	--Return values
-	local ret
-	if succ then
-		succ, ret = pcall(err,path)
+	if fileContents then
+		lastLoaded = love.filesystem.getInfo(path).modtime
+		status, func = pcall(loadstring,fileContents)
+		if not status then
+			print('Error compiling ',path,':',tostring(err),', will continue watching!')
+		else
+			succ, ret = pcall(func,path)
+		end
 		if not succ then
 			print('Error calling ',path,':',tostring(ret))
 		end
+	else
+		print('Error loading ',path,':',tostring(err),', will continue watching!')
 	end
 
 	return fileContents, err, ret, lastLoaded
@@ -76,7 +59,6 @@ function debugLoader.update(dt)
 			if ll ~= elem[5] then
 				--If last save time differs then start reload sequence
 				local _, _, ret, lastLoaded = loader(elem[4])
-
 
 				local setfuncs = {}
 				
