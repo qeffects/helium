@@ -36,14 +36,17 @@ local activeContext
 
 ]]
 function input.newContext(element)
-	local ctx = setmetatable({elem = element, subs = {}}, context)
+	local ctx = setmetatable({elem = element, subs = {}, childContexts={}}, context)
 
 	return ctx
 end
 
 function context:set()
 	if activeContext then
-		self.parentCtx = activeContext
+		if not self.parentCtx then
+			activeContext.childContexts[#activeContext.childContexts+1] = self
+			self.parentCtx = activeContext
+		end
 		self.absX      = self.parentCtx.absX + self.elem.view.x
 		self.absY      = self.parentCtx.absY + self.elem.view.y
 		activeContext  = self
@@ -70,6 +73,9 @@ end
 
 function context:destroy()
 	for i, e in ipairs(self.subs) do
+		e:destroy()
+	end
+	for i, e in ipairs(self.childContexts) do
 		e:destroy()
 	end
 end
@@ -149,33 +155,23 @@ function subscription:emit(...)
 end
 
 function subscription:checkInside(x, y)
-	if x>self.x and x<self.x+self.w and y>self.y and y<self.y+self.h then
-		return true
-	else
-		return false
-	end
+	return x>self.x and x<self.x+self.w and y>self.y and y<self.y+self.h
 end
 
 function subscription:checkOutside(x, y)
-	if x>self.x and x<self.x+self.w and y>self.y and y<self.y+self.h then
-		return false
-	else
-		return true
-	end
+	return not (x>self.x and x<self.x+self.w and y>self.y and y<self.y+self.h)
 end
 
-input.subscribe = function(...)
-	return subscription.create(...)
-end
+input.subscribe = subscription.create
 
 
 function input.eventHandlers.mousereleased(x, y, btn)
 	local captured = false
 	if input.subscriptions.mousereleased then
 		for index, sub in ipairs(input.subscriptions.mousereleased) do
-			local succ = sub:checkInside(x, y)
+			--local succ = sub:checkInside(x, y)
 
-			if  succ and sub.active  then
+			if sub.active and sub:checkInside(x, y) then -- succ and sub:check
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -184,9 +180,9 @@ function input.eventHandlers.mousereleased(x, y, btn)
 	end
 	if input.subscriptions.mousereleased_outside then
 		for index, sub in ipairs(input.subscriptions.mousereleased_outside) do
-			local succ = sub:checkOutside(x, y)
+			--local succ = sub:checkOutside(x, y)
 
-			if  succ and sub.active  then
+			if sub.active and sub:checkOutside(x, y) then -- succ and sub.active then
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -227,9 +223,9 @@ function input.eventHandlers.mousepressed(x, y, btn)
 	local captured = false
 	if input.subscriptions.mousepressed then
 		for index, sub in ipairs(input.subscriptions.mousepressed) do
-			local succ = sub:checkInside(x, y)
+			--local succ = sub:checkInside(x, y)
 
-			if  succ and sub.active  then
+			if sub.active and sub:checkInside(x, y) then -- succ and sub:check
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -238,9 +234,9 @@ function input.eventHandlers.mousepressed(x, y, btn)
 	end
 	if input.subscriptions.mousepressed_outside then
 		for index, sub in ipairs(input.subscriptions.mousepressed_outside) do
-			local succ = sub:checkOutside(x, y)
+			--local succ = sub:checkOutside(x, y)
 
-			if succ and sub.active then
+			if sub.active and sub:checkOutside(x, y) then -- succ and sub.active then
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -262,9 +258,9 @@ function input.eventHandlers.mousepressed(x, y, btn)
 	
 	if input.subscriptions.dragged then
 		for index, sub in ipairs(input.subscriptions.dragged) do
-			local succ = sub:checkInside(x, y)
+			--local succ = sub:checkInside(x, y)
 
-			if succ and sub.active then
+			if sub.active and sub:checkInside(x, y) then -- succ and sub:check
 				sub.currentEvent = true
 				captured         = true
 			end
@@ -279,7 +275,7 @@ function input.eventHandlers.keypressed(btn)
 	local captured = false
 	if input.subscriptions.keypressed then
 		for index, sub in ipairs(input.subscriptions.keypressed) do
-			if sub.active ==true then
+			if sub.active then -- ==true then
 				sub:emit( btn)
 				captured = true
 			end
@@ -311,11 +307,11 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 		for index, sub in ipairs(input.subscriptions.hover) do
 			local succ = sub:checkInside(x, y)
 
-			if succ and sub.active and not sub.currentEvent then
+			if sub.active and not sub.currentEvent and succ then
 				sub.cleanUp      = sub:emit(x, y)
 				sub.currentEvent = true
 				captured         = true
-			elseif sub.currentEvent and not sub:checkInside(x, y) then
+			elseif sub.currentEvent and not succ then
 				sub.currentEvent = false
 				captured         = true
 				if sub.cleanUp then
@@ -334,7 +330,7 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 				else
 					sub:emit(x, y, dx, dy)
 				end
-				sub.currentEvent = true
+				--sub.currentEvent = true -- checked in the condition so must be true
 				captured         = true
 			end
 

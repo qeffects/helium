@@ -11,7 +11,7 @@ local activeContext
 
 ---@param elem element
 function context.new(elem)
-	local ctx = setmetatable({view = elem.view, element = elem}, context)
+	local ctx = setmetatable({view = elem.view, element = elem, childrenContexts={}}, context)
 
 	return ctx
 end
@@ -27,7 +27,10 @@ end
 
 function context:set()
 	if activeContext then
-		self.parentCtx = activeContext
+		if not self.parentCtx then
+			self.parentCtx = activeContext
+			activeContext.childrenContexts[#activeContext.childrenContexts] = self
+		end
 
 		self.absX      = self.parentCtx.absX + self.view.x
 		self.absY      = self.parentCtx.absY + self.view.y
@@ -49,10 +52,18 @@ function context:unset()
 	end
 end
 
+function context:destroy()
+	self.elem:undraw()
+	for i=1,#self.childrenContexts do
+		self.childrenContexts[i]:destroy()
+	end
+end
+
 ---@class element
 local element = {}
 element.__index = element
 
+local type,pcall = type,pcall
 setmetatable(element,{
 		__call = function(cls, ...)
 			local self
@@ -60,7 +71,6 @@ setmetatable(element,{
 			if type(func)=='function' then
 				self = setmetatable({}, element)
 				self.parentFunc = func
-				self.classless  = true
 			end
 
 			if loader then
@@ -79,11 +89,6 @@ setmetatable(element,{
 --Dummy functions
 function element:renderer() print('no renderer') end
 
-function element:updater() end
-
-function element:constructor() end
-
-
 --Control functions
 --The new function that should be used for element creation
 function element:new()
@@ -92,7 +97,7 @@ function element:new()
 	self.parameters = {}
 
 	--The element canvas
-	self.canvas = nil
+	--self.canvas = nil
 
 	--Internal settings
 	self.settings = {
@@ -129,19 +134,17 @@ function element:new()
 	self.inputContext = helium.input.newContext(self)
 	self.context = context.new(self)
 
-	if self.classless then
-		self.classlessFuncs = {}
+	self.classlessFuncs = {}
 		
-		--Allows manipulation of the arbitrary state
-		self.classlessFuncs.getState = function ()
-			return self.state
-		end
+	--Allows manipulation of the arbitrary state
+	self.classlessFuncs.getState = function ()
+		return self.state
+	end
 	
-		--Allows manipulation of rendering width height, relative X and relative Y
-		self.classlessFuncs.getView = function ()
-			self.settings.restrictView = true
-			return self.view
-		end
+	--Allows manipulation of rendering width height, relative X and relative Y
+	self.classlessFuncs.getView = function ()
+		self.settings.restrictView = true
+		return self.view
 	end
 end
 
@@ -173,6 +176,7 @@ function element:reLoader(newFunc)
 	self.inputContext:unset()
 end
 
+local newCanvas,newQuad = love.graphics.newCanvas,love.graphics.newQuad
 --Called once dimensions are validated
 function element:setup()
 	self.state = setmetatable({},{
@@ -203,21 +207,17 @@ function element:setup()
 	self.settings.canvasW = self.view.w*1.25
 	self.settings.canvasH = self.view.h*1.25
 
-	self.canvas = love.graphics.newCanvas(self.view.w*1.25, self.view.h*1.25)
+	self.canvas = newCanvas(self.view.w*1.25, self.view.h*1.25)
+	self.quad = newQuad(0, 0, self.view.w, self.view.h, self.view.w*1.25, self.view.h*1.25)
 
-	self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.view.w*1.25, self.view.h*1.25)
-
-	if self.classless then
-		self.inputContext:set()
-		
-		self.renderer = self.parentFunc(self.parameters,self.state,self.view)
-
-		self.inputContext:unset()
-	end
+	self.inputContext:set()
+	self.renderer = self.parentFunc(self.parameters,self.state,self.view)
+	self.inputContext:unset()
 
 	self.settings.isSetup = true
 end
 
+local setColor,rectangle,setFont,printf = love.graphics.setColor,love.graphics.rectangle,love.graphics.setFont,love.graphics.printf
 function element:classlessRender()
 
 	self.inputContext:set()
@@ -225,38 +225,38 @@ function element:classlessRender()
 		local status, err = pcall(self.renderer)
 
 		if not status then
-			love.graphics.setColor(1,0,0)
-			love.graphics.rectangle('line',0,0,self.view.w,self.view.h)
-			love.graphics.setColor(1,1,1)
-			love.graphics.printf("Error: "..err,0,0,self.view.w)
+			setColor(1,0,0)
+			rectangle('line',0,0,self.view.w,self.view.h)
+			setColor(1,1,1)
+			printf("Error: "..err,0,0,self.view.w)
 		end
 
 	elseif type(self.renderer)=='string' then
-		love.graphics.setColor(1,0,0)
-		love.graphics.rectangle('line',0,0,self.view.w,self.view.h)
-		love.graphics.setColor(1,1,1)
-		love.graphics.printf("Error: "..self.renderer,0,0,self.view.w)
+		setColor(1,0,0)
+		rectangle('line',0,0,self.view.w,self.view.h)
+		setColor(1,1,1)
+		printf("Error: "..self.renderer,0,0,self.view.w)
 	end
-	self.inputContext:unset()
 
+	self.inputContext:unset()
 end
 
+local getCanvas,setCanvas,clear = love.graphics.getCanvas,love.graphics.setCanvas,love.graphics.clear
 function element:renderWrapper()
-	local cnvs = love.graphics.getCanvas()
-	love.graphics.setCanvas({self.canvas, stencil = true})
+	local cnvs = getCanvas()
+	setCanvas({self.canvas, stencil = true})
 
-	love.graphics.clear()
+	clear()
 
-	if self.classless and self.parameters then
+	if self.parameters then
 		self:classlessRender()
 		self.settings.pendingUpdate = false
-	else
-		self:renderer()
 	end
 
-	love.graphics.setCanvas(cnvs)
+	setCanvas(cnvs)
 end
 
+local draw = love.graphics.draw
 function element:externalRender()
 	self.context:set()
 
@@ -265,8 +265,8 @@ function element:externalRender()
 		self.settings.needsRendering = false
 	end
 
-	love.graphics.setColor(1,1,1)
-	love.graphics.draw(self.canvas, self.quad, self.view.x, self.view.y)
+	setColor(1,1,1)
+	draw(self.canvas, self.quad, self.view.x, self.view.y)
 
 	self.context:unset()
 end
@@ -282,6 +282,7 @@ function element:externalUpdate()
 	end
 end
 
+local insert = table.insert
 --External functions
 --Acts as the entrypoint for beginning rendering
 ---@param params any
@@ -291,10 +292,14 @@ end
 ---@param h number
 function element:draw(params, x, y, w, h)
 	if not self.view.lock then
-		self.view.x = x or self.view.x
-		self.view.y = y or self.view.y
-		self.view.w = w or self.view.w
-		self.view.h = h or self.view.h
+		--self.view.x = x or self.view.x
+		--self.view.y = y or self.view.y
+		--self.view.w = w or self.view.w
+		--self.view.h = h or self.view.h
+		if x then self.view.x = x end
+		if y then self.view.y = y end
+		if w then self.view.w = w end
+		if h then self.view.h = h end
 	end
 
 	if params then
@@ -316,13 +321,15 @@ function element:draw(params, x, y, w, h)
 		self:externalRender()
 	elseif not self.settings.inserted then
 		self.settings.inserted = true
-		table.insert(helium.elementBuffer, self)
+		insert(helium.elementBuffer, self)
 	end
 end
 
 function element:undraw()
 	self.settings.remove  = true
 	self.settings.isSetup = false
+	self.inputContext:set()
+	self.inputContext:destroy()
 end
 
 return element
