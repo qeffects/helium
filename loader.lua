@@ -57,11 +57,11 @@ debugLoader.loader = function(path,returnLevel)
 		setfuncs[#setfuncs+1] = setFunc
 	end
 
-	local factory = function()
-		return helium.element(ret, reloader)
+	local factory = function(param,w,h)
+		return helium.element(ret, reloader, w, h, param)
 	end
 
-	elements[path] = { fileContents, func, ret, path, lastLoaded, factory, setfuncs = setfuncs }
+	elements[path] = {fileContents, func, ret, path, lastLoaded, factory, setfuncs = setfuncs}
 	return elements[path][level]
 end
 

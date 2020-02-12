@@ -67,7 +67,7 @@ local type,pcall = type,pcall
 setmetatable(element,{
 		__call = function(cls, ...)
 			local self
-			local func, loader = ...
+			local func, loader, w, h, param = ...
 			if type(func)=='function' then
 				self = setmetatable({}, element)
 				self.parentFunc = func
@@ -80,7 +80,7 @@ setmetatable(element,{
 				loader(f)
 			end
 
-			self:new()
+			self:new(w, h, param)
 
 			return self
 		end
@@ -91,13 +91,13 @@ function element:renderer() print('no renderer') end
 
 --Control functions
 --The new function that should be used for element creation
-function element:new()
+function element:new(w, h, param)
 	local dimensions
 	--save the parameters
 	self.parameters = {}
 
 	--The element canvas
-	--self.canvas = nil
+	self.baseParams = param
 
 	--Internal settings
 	self.settings = {
@@ -113,8 +113,8 @@ function element:new()
 	self.baseView = {
 		x = 0,
 		y = 0,
-		w = 10,
-		h = 10,
+		w = w or 10,
+		h = h or 10,
 	}
 
 	self.view = setmetatable({},{
@@ -167,12 +167,14 @@ end
 
 function element:reLoader(newFunc)
 	self.inputContext:set()
+	self.context:set()
 	self.inputContext:destroy()
 
 	self.parentFunc = newFunc
 	self.renderer = self.parentFunc(self.parameters,self.state,self.view)
 	self.context:bubbleUpdate()
 
+	self.context:unset()
 	self.inputContext:unset()
 end
 
@@ -210,9 +212,11 @@ function element:setup()
 	self.canvas = newCanvas(self.view.w*1.25, self.view.h*1.25)
 	self.quad = newQuad(0, 0, self.view.w, self.view.h, self.view.w*1.25, self.view.h*1.25)
 
-	self.inputContext:set()
+	self.context:set()
+	self.inputContext:set()	
 	self.renderer = self.parentFunc(self.parameters,self.state,self.view)
 	self.inputContext:unset()
+	self.context:unset()
 
 	self.settings.isSetup = true
 end
@@ -285,32 +289,12 @@ end
 local insert = table.insert
 --External functions
 --Acts as the entrypoint for beginning rendering
----@param params any
 ---@param x number
 ---@param y number
----@param w number
----@param h number
-function element:draw(params, x, y, w, h)
+function element:draw(x, y)
 	if not self.view.lock then
-		--self.view.x = x or self.view.x
-		--self.view.y = y or self.view.y
-		--self.view.w = w or self.view.w
-		--self.view.h = h or self.view.h
 		if x then self.view.x = x end
 		if y then self.view.y = y end
-		if w then self.view.w = w end
-		if h then self.view.h = h end
-	end
-
-	if params then
-		if type(params)=='table' and self.baseParams then
-			helium.utils.tableMerge(params, self.parameters)
-		elseif self.baseParams==nil then
-			self.baseParams = params
-		else
-			self.parameters = params
-		end
-
 	end
 
 	if not self.settings.isSetup then
