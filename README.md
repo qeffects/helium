@@ -1,3 +1,4 @@
+![alt text](https://i.imgur.com/2i2MS2l.png "Helium")
 # Helium
  ## user facing functions
  ```lua
@@ -89,31 +90,32 @@ button:draw(10,10)
 	
 
 Now theres a lot to explain, but its fairly simple, so lets take it by chunks
+Here we import the input module of Helium, so that we can later subscribe to an event:
 ```lua
 local input = require "helium.core.input" 
 ```
-Here we import the input module of Helium, so that we can later subscribe to an event
 
 ---
+Here we create a state field called pressed, think of state as a helium elements self 
+It works like a regular table, with the caveat that you shouldnt overwrite it directly like state = {}
 ```lua
 state.pressed = false
 ```
-Here we create a state field called pressed, think of state as a helium elements self 
-It works like a regular table, with the caveat that you shouldnt overwrite it directly like state = {}
 
 ---
+Then we overwrite that state.pressed inside a callback which will be called every time our button is pressed
 ```lua	
 local callback = function() state.pressed = true end
 ```
-Then we overwrite that state.pressed inside a callback which will be called every time our button is pressed
 
 ---
+This is creating an input subscription for the event of your choice
 ```lua
 input.subscribe(0,0,view.w,view.h,'clicked',callback)
 ```
-This is creating an input subscription for the event of your choice
 
 ---
+Is the rendering code, it works more or less like a mini window of a love.draw()
 ```lua
 return function()
 	if state.pressed then
@@ -126,7 +128,6 @@ return function()
 	love.graphics.printf("Pressed? "..tostring(state.pressed),0,view.h/2-5,view.w,'center')
 end
 ```
-Is the rendering code, it works more or less like a mini window of a love.draw()
 
 ### Additional details: 
 **view** is a table that holds the information about the position and size of an element
@@ -136,6 +137,7 @@ Setting this from inside the element works as expected(so you can dynamically re
 param is the table that you pass in buttonFactory({}, 200, 100), it can be anything you need
 
 there's a configuration table inside of helium, which has a couple of default settings
+AUTO_RUN if true will give you a basic 11.3 version love.run 
 if autorun is off then you NEED to place helium.update(dt), helium.render() somewhere
 
 and if you need input, hook it up to the eventHandlers in your own love.run:

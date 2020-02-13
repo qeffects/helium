@@ -3,19 +3,19 @@
 	Copyright (c) 2019 Elmārs Āboliņš
 	gitlab.com/project link here
 ----------------------------------------------------]]
-local path = ...
-local helium  = require(path..".dummy")
-helium.conf = require(path..".conf")
-helium.utils = require(path..".utils")
+local path     = ...
+local helium   = require(path..".dummy")
+helium.conf    = require(path..".conf")
+helium.utils   = require(path..".utils")
 helium.element = require(path..".core.element")
-helium.input = require(path..".core.input")
-helium.loader = require(path..".loader")
+helium.input   = require(path..".core.input")
+helium.loader  = require(path..".loader")
 helium.elementBuffer = {}
 
 function helium.render()
 	--We don't want any side effects affecting internal rendering
 	love.graphics.reset()
-	
+
 	for i, e in ipairs(helium.elementBuffer) do
 		e:externalRender()
 	end
@@ -63,7 +63,7 @@ end
 			end
 		end
 
-		if not(gui.eventHandlers[name]) or not(helium.eventHandlers[name](a, b, c, d, e, f)) then
+		if not(helium.eventHandlers[name]) or not(helium.eventHandlers[name](a, b, c, d, e, f)) then
 			love.handlers[name](a, b, c, d, e, f)
 		end
 	end
