@@ -1,5 +1,7 @@
 # helium
 
+## The documentation below is outdated, needs a rewrite
+
 A UI library for Love2D
 
 **Helium** is a highly extensible retained GUI library for LOVE2D If you’ve ever used React.js, you’ll feel right at home, don’t dread if you haven’t, it’s fairly simple.
