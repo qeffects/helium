@@ -31,14 +31,14 @@
 ```
 
 ## Basic overview:
-    Helium is practically more like a UI framework than a fully fledged UI library. 
-    The idea is to build custom, build simple and build fast, encapsulate.
+Helium is practically more like a UI framework than a fully fledged UI library. 
+The idea is to build custom, build simple and build fast, encapsulate.
 
 ## Getting started:
-    Load helium with helium = require 'helium'
-    Create a new file for your awesome element, say 'helloWorld.lua'
+Load helium with helium = require 'helium'
+Create a new file for your awesome element, say 'helloWorld.lua'
 
-	The basic structure for an element file is:
+The basic structure for an element file is:
 
 ```lua
 	return function(param,state,view)
@@ -49,11 +49,11 @@
 	end
 ```
 
-	That's it, it's now a correct helium element
+That's it, it's now a correct helium element
 
-	So lets make a simple button!
+So lets make a simple button!
 
-	In helloWorld.lua:
+In helloWorld.lua:
 ```lua
 	local input = require "helium.core.input" 
 
@@ -77,7 +77,7 @@
 		end
 	end
 ```
-	And in main.lua:
+And in main.lua:
 ```lua
 	local buttonFactory = HeliumLoader('helloWorld.lua')
 	local button = buttonFactory({}, 200, 100)
@@ -88,29 +88,30 @@
 	
 	
 
-	Now theres a lot to explain, but its fairly simple, so lets take it by chunks
-
+Now theres a lot to explain, but its fairly simple, so lets take it by chunks
+```lua
 	local input = require "helium.core.input" 
-	Here we import the input module of Helium, so that we can later subscribe to an event
+```
+Here we import the input module of Helium, so that we can later subscribe to an event
 
 
 ```lua
 	state.pressed = false
 ```
-	Here we create a state field called pressed, think of state as a helium elements self 
-	It works like a regular table, with the caveat that you shouldnt overwrite it directly like state = {}
+Here we create a state field called pressed, think of state as a helium elements self 
+It works like a regular table, with the caveat that you shouldnt overwrite it directly like state = {}
 
 
 ```lua	
 	local callback = function() state.pressed = true end
 ```
-	Then we overwrite that state.pressed inside a callback which will be called every time our button is pressed
+Then we overwrite that state.pressed inside a callback which will be called every time our button is pressed
 
 
 ```lua
 	input.subscribe(0,0,view.w,view.h,'clicked',callback)
 ```
-	This is creating an input subscription for the event of your choice
+This is creating an input subscription for the event of your choice
 
 
 ```lua
@@ -125,20 +126,19 @@
 		love.graphics.printf("Pressed? "..tostring(state.pressed),0,view.h/2-5,view.w,'center')
 	end
 ```
-	Is the rendering code, it works more or less like a mini window of a love.draw()
+Is the rendering code, it works more or less like a mini window of a love.draw()
 
-	Additional details: 
-		view is a table that holds the information about the position and size of an element
-			x,y
-			w,h
-		Setting this from inside the element works as expected(so you can dynamically resize and reposition the element from inside)
+### Additional details: 
+**view** is a table that holds the information about the position and size of an element
+x, y, w, h
+Setting this from inside the element works as expected(so you can dynamically resize and reposition the element from inside)
 
-		param is the table that you pass in buttonFactory({}, 200, 100), it can be anything you need
+param is the table that you pass in buttonFactory({}, 200, 100), it can be anything you need
 
-		there's a configuration table inside of helium, which has a couple of default settings
-		if autorun is off then you NEED to place helium.update(dt), helium.render() somewhere
+there's a configuration table inside of helium, which has a couple of default settings
+if autorun is off then you NEED to place helium.update(dt), helium.render() somewhere
 
-		and if you need input, hook it up to the eventHandlers in your own love.run:
+and if you need input, hook it up to the eventHandlers in your own love.run:
 ```lua
 		if not(helium.input.eventHandlers[name]) or not(helium.input.eventHandlers[name](a, b, c, d, e, f)) then
 			love.handlers[name](a, b, c, d, e, f)
