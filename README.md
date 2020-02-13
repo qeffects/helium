@@ -90,12 +90,14 @@ And in main.lua:
 
 Now theres a lot to explain, but its fairly simple, so lets take it by chunks
 ```lua
+
 	local input = require "helium.core.input" 
 ```
 Here we import the input module of Helium, so that we can later subscribe to an event
 
 
 ```lua
+
 	state.pressed = false
 ```
 Here we create a state field called pressed, think of state as a helium elements self 
@@ -103,18 +105,21 @@ It works like a regular table, with the caveat that you shouldnt overwrite it di
 
 
 ```lua	
+
 	local callback = function() state.pressed = true end
 ```
 Then we overwrite that state.pressed inside a callback which will be called every time our button is pressed
 
 
 ```lua
+
 	input.subscribe(0,0,view.w,view.h,'clicked',callback)
 ```
 This is creating an input subscription for the event of your choice
 
 
 ```lua
+
 	return function()
 		if state.pressed then
 			love.graphics.setColor(0.3,0.3,0.9)
