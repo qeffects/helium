@@ -13,6 +13,9 @@ helium.loader = require(path..".loader")
 helium.elementBuffer = {}
 
 function helium.render()
+	--We don't want any side effects affecting internal rendering
+	love.graphics.reset()
+	
 	for i, e in ipairs(helium.elementBuffer) do
 		e:externalRender()
 	end
@@ -45,8 +48,8 @@ end
 --[[
 	A user doesn't have to use this particular love.run
 
-	*.element.bufferUpdate()
-	*.draw()
+	helium.render()
+	helium.update(dt)
 
 	Need to be called either through love.update and love.draw respectively
 	or put in to your custom love.run
@@ -67,12 +70,7 @@ end
 ]]
 if helium.conf.AUTO_RUN then
 	function love.run()
-
-		if love.math then
-			love.math.setRandomSeed(os.time())
-		end
-
-		if love.load then love.load(arg) end
+		if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
 
 		-- We don't want the first frame's dt to include time taken by love.load.
 		if love.timer then love.timer.step() end
@@ -80,14 +78,14 @@ if helium.conf.AUTO_RUN then
 		local dt = 0
 
 		-- Main loop time.
-		while true do
+		return function()
 			-- Process events.
 			if love.event then
 				love.event.pump()
 				for name, a,b,c,d,e,f in love.event.poll() do
 					if name == "quit" then
 						if not love.quit or not love.quit() then
-							return a
+							return a or 0
 						end
 					end
 
@@ -99,25 +97,23 @@ if helium.conf.AUTO_RUN then
 
 
 			-- Update dt, as we'll be passing it to update
-			if love.timer then
-				love.timer.step()
-				dt = love.timer.getDelta()
-			end
+			if love.timer then dt = love.timer.step() end
 
 			-- Call update and draw
 			if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
 			helium.update(dt)
 
 			if love.graphics and love.graphics.isActive() then
-				love.graphics.clear(love.graphics.getBackgroundColor())
 				love.graphics.origin()
+				love.graphics.clear(love.graphics.getBackgroundColor())
 
 				if love.draw then love.draw() end
 				helium.render()
+
 				love.graphics.present()
 			end
 
-			if love.timer then love.timer.sleep(0.00001) end
+			if love.timer then love.timer.sleep(0.001) end
 		end
 	end
 end
