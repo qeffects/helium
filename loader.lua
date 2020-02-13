@@ -101,6 +101,8 @@ function debugLoader.update(dt)
 	end
 end
 
-HeliumLoader = debugLoader.loader
+if helium.conf.PURE_G then
+	HeliumLoader = debugLoader.loader
+end
 
 return debugLoader
