@@ -1,16 +1,24 @@
-![alt text](https://i.imgur.com/2i2MS2l.png "Helium")
+![alt text](https://i.imgur.com/ZQBQfsa.png "Helium")
 # Helium
- ## user facing functions
+ ## Major features:
+ ### Custom elements
+ Write your own elements, and interface with them however you want to
+ ### Efficient rendering & updating
+ The elements only update&re-render when state changes
+ ### Code hotswap
+ Save a file, and see changes immediately
+ ## User facing interface
  ```lua
-Element(function,reloader,w,h,parameters) --Creates a new element
-    :draw(x,y) --Renders the element at a location
-    :undraw() --Removes the element from the render buffer
+helium.element(function,reloader,w,h,parameters) 
+	->Element --Creates a new element
+    	:draw(x,y) --Renders the element at a location
+    	:undraw() --Removes the element from the render buffer
 
 --The intended loader for element files (supports optional live hotswapping)
 HeliumLoader(filepath) -> ElementFactory
-ElementFactory(w,h,parameters) -> Element
+ElementFactory(parameters,w,h) -> Element
 
-Input
+helium.input
     .subscribe(x, y, w, h, subType, callback, startOn)
         subType -- Subscription type
         callback -- Subscription callback on event
