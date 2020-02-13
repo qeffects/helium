@@ -1,222 +1,146 @@
-# helium
+# Helium
+ ## user facing functions
+ ```lua
+    Element(function,reloader,w,h,parameters) --Creates a new element
+        :draw(x,y) --Renders the element at a location
+        :undraw() --Removes the element from the render buffer
 
-A UI library for Love2D
+    --The intended loader for element files (supports optional live hotswapping)
+    HeliumLoader(filepath) -> ElementFactory
+    ElementFactory(w,h,parameters) -> Element
 
-**Helium** is a highly extensible retained GUI library for LOVE2D If you’ve ever used React.js, you’ll feel right at home, don’t dread if you haven’t, it’s fairly simple.
+    Input
+        .subscribe(x, y, w, h, subType, callback, startOn)
+            subType -- Subscription type
+            callback -- Subscription callback on event
+            startOn -- a bool to disable a subscription by default
+        -> Subscription
+            :on() --Turns an inactive subscription on
+            :off() --Turns an active subscription off
+        
+        subType:
+            Advanced:
+             "clicked" --Gets called whenever the subscribed area is pressed, with an optional return callback
+             "dragged" --Gets called whenever the subscribed area is dragged, with an optional 'finish' callback
+            Basic events:
+             "mousepressed" --Gets called whenever the subscribed area gets pressed
+             "mousereleased" --Gets called whenever mouse is released in the subscription area
+             "mousepressed_outside" --This type gets called when mouse is pressed outside the subscription area
+             "mousereleased_outside" --This type gets called when mouse is released outside the sub area
+             "keypressed" --Basic keyboard input
+```
 
-# Getting started
+## Basic overview:
+    Helium is practically more like a UI framework than a fully fledged UI library. 
+    The idea is to build custom, build simple and build fast, encapsulate.
 
-Download helium, unpack it in to your love project and use
+## Getting started:
+    Load helium with helium = require 'helium'
+    Create a new file for your awesome element, say 'helloWorld.lua'
 
-```local helium = require 'helium'```
-to load it in to your project
+	The basic structure for an element file is:
 
+```lua
+	return function(param,state,view)
+		--Setup zone
+		return function()
+			--Rendering zone
+		end
+	end
+```
 
-# Basic concepts
+	That's it, it's now a correct helium element
 
-## Element
+	So lets make a simple button!
 
-Is the building block of all GUI’s using Helium, an element consists of a single function which
-you pass in to helium.element(). You can treat everything inside this function as its own
-love.draw() context, let’s create an element right now in fact:
+	In helloWorld.lua:
+```lua
+	local input = require "helium.core.input" 
 
-~~~lua
-function test_element()
-    love.graphics.print("Hello world")
-end
+	return function(param,state,view)
+		--Press state
+		state.pressed = false
+		--The callback for the input subscription
+		local callback = function() state.pressed = true end
+		--The actual input subscription 
+		input.subscribe(0,0,view.w,view.h,'clicked',callback)
+		
+		return function()
+			if state.pressed then
+				love.graphics.setColor(0.3,0.3,0.9)
+			else
+				love.graphics.setColor(0.3,0.3,0.5)
+			end
+			love.graphics.rectangle('fill', 0, 0, view.w, view.h)
+			love.graphics.setColor(1,1,1)
+			love.graphics.printf("Pressed? "..tostring(state.pressed),0,view.h/2-5,view.w,'center')
+		end
+	end
+```
+	And in main.lua:
+```lua
+	local buttonFactory = HeliumLoader('helloWorld.lua')
+	local button = buttonFactory({}, 200, 100)
+	button:draw(10,10)
+```
+![alt text](https://i.imgur.com/polli7q.jpg "Before")
+![alt text](https://i.imgur.com/VGql2He.jpg "After")
+	
+	
 
-local hello_world = helium.element(test_element)
+	Now theres a lot to explain, but its fairly simple, so lets take it by chunks
 
-hello_world:draw({},10,10,100,20)
-~~~
-## Parameters
-Parameters come in useful, when you want to reuse the same ‘template’ multiple times, that’s
-where function parameters come in
-
-~~~lua
-function test_element(parameters, width, height)
-~~~
-
-Parameters can be some arbitrary data you might want to pass in to your rendering ‘template’,
-for example font, color, text, alignment, as well the library itself passes in width and height of
-the element let’s integrate a few parameters in to the previous example.
-Let’s create some parameters right now,
-
-~~~lua
-p = {
-    color = {0.9,0.9,0},
-    text = "Different text this time"
-}
-~~~
-now change the :draw call to this
-
-~~~lua
-hello_world:draw(p,10,10,100,20)
-~~~
-
-and accept the parameters in to the function itself:
-
-~~~lua
-function test_element(parameters)
-~~~
-
-and use these parameters inside:
-
-~~~lua
-function test_element(parameters)
-    love.graphics.setColor(parameters.color)
-    love.graphics.print(parameters.text)
-end
-~~~
-
-Now, helium is smart, you can change the parameters, and it will only and only render when you change it, what this means is efficiency, you change the parameters when you need to display different data, and helium catches that change and displays it, this is how most modern UI’s work, because there’s no need to render the whole toolbar every 16ms just in case data
-changes, only when the data driving that toolbar changes. There are some caveats when using parameters...
-
-Of course doing everything with parameters is possible, but it’s inconvenient , wouldn’t it be great to encapsulate some state logic in to an element, but hold on a second, if you run x+y once and didn’t change x or y, then you could run it millions of times and it would always be the
-same, that’s where
-
-## State
-comes in
-
-Say you have a checkbox, slider or radio group(or something much, much much more complicated), having the logic controlling that somewhere in your main.lua or another random place, would make debugging, and just code readability bad. I sort of lied about the function you make being a normal love.draw context, now it’s not all bad, it is a rendering context similar to that, but it has some added functionality for your convenience, the library injects a few additional things in there, one of those is the function useState, in short, useState will return the current state of the variable you might change inside your element or outside along with a callback(link to something that explains a callback), to change that state, so practically, how does it integrate with our previous example?
-
-Love by itself doesn’t have a great callback to showcase this part, so just for illustration we’re gonna capture key inputs in to our little text element:
-
-~~~lua
-function test_element(parameters, width, height)
-    local key, setKey = useState('press a key')
-
-    love.graphics.setColor(parameters.color)
-    love.graphics.print(key)
-end
-~~~
+	local input = require "helium.core.input" 
+	Here we import the input module of Helium, so that we can later subscribe to an event
 
 
-**useState** has fairly simple syntax, in the parentheses you put the ‘default’ value of your variable, say ‘true’ or ‘10’, it can be a table as well. It returns the current value as the first return, ‘key’ in this example, and the second is a function you can use to set the new value As you can guess the library keeps track of your value behind the scenes, so that every time your function calls **useState**, it returns the current value instead of **local x = 10** being effectivelly a constant between function runs. So let’s make the key capturing part, and I must reiterate that there will be a much better way to accomplish this in the next section, here we’ll just use the love.keypressed callback:
+```lua
+	state.pressed = false
+```
+	Here we create a state field called pressed, think of state as a helium elements self 
+	It works like a regular table, with the caveat that you shouldnt overwrite it directly like state = {}
 
-~~~lua
-function test_element(parameters, width, height)
-    local key, setKey = useState('press a key')
 
-    function love.keypressed(k)
-        setKey(k)
-    end
+```lua	
+	local callback = function() state.pressed = true end
+```
+	Then we overwrite that state.pressed inside a callback which will be called every time our button is pressed
 
-    love.graphics.setColor(parameters.color)
-    love.graphics.print(key)
-end
-~~~
 
-As you should be able to see, the text now becomes the last pressed key, for exercise, lets add some more functionality:
+```lua
+	input.subscribe(0,0,view.w,view.h,'clicked',callback)
+```
+	This is creating an input subscription for the event of your choice
 
-~~~lua
-function test_element(parameters, width, height)
-    local key, setKey = useState('press a key')
 
-    function love.keypressed(k)
-        if k == 'delete' then
-            setKey('')
-        else
-            setKey(key..k)
-        end
-    end
+```lua
+	return function()
+		if state.pressed then
+			love.graphics.setColor(0.3,0.3,0.9)
+		else
+			love.graphics.setColor(0.3,0.3,0.5)
+		end
+		love.graphics.rectangle('fill', 0, 0, view.w, view.h)
+		love.graphics.setColor(1,1,1)
+		love.graphics.printf("Pressed? "..tostring(state.pressed),0,view.h/2-5,view.w,'center')
+	end
+```
+	Is the rendering code, it works more or less like a mini window of a love.draw()
 
-    love.graphics.setColor(parameters.color)
-    love.graphics.print(key)
-end 
-~~~
+	Additional details: 
+		view is a table that holds the information about the position and size of an element
+			x,y
+			w,h
+		Setting this from inside the element works as expected(so you can dynamically resize and reposition the element from inside)
 
-You now have a rudimentary text input element, here’s the whole result:
+		param is the table that you pass in buttonFactory({}, 200, 100), it can be anything you need
 
-~~~lua
---Loading the library
-local helium = require 'helium'
+		there's a configuration table inside of helium, which has a couple of default settings
+		if autorun is off then you NEED to place helium.update(dt), helium.render() somewhere
 
---The rendering function itself
-function test_element(parameters, width, height)
-    local key, setKey = useState('press any key')
-
-    function love.keypressed(k)
-        if k == 'delete' then
-            setKey('')
-        else
-            setKey(key..k)
-        end
-    end
-
-    love.graphics.setColor(parameters.color)
-    love.graphics.print(key)
-end
---Creating an instance of our element
-local hello_world = helium.element(test_element)
-
---Setting up parameters for our element
-p = {
-    color = {0.9,0.9,0},
-    text = "Different text this time"
-}
-
---Rendering our element
-hello_world:draw(p,10,10,100,20)
-~~~
-
-If you’re familiar with react.js, everything should be relatively similar to what you know, this is where Helium diverges from React signifficantly, since Helium also has to handle Mouse and Keyboard events on the elements, this is where
-
-## loadEffect
-comes in, it’s a function that you call with an anonymous function to be run once like this:
-
-~~~lua
-    loadEffect(function()
-        helium.input.subscribe(0,0,w,h,'mousepressed',start)
-        helium.input.subscribe(0,0,w,h,'mousereleased',stop)
- 
-        return{}
-    end)
-~~~
-
-This is most useful when combined with the 
-## Input
-module
-
-The system is fairly simple, theres’ a subscription to an event type, the library then listens and captures that event, you tell it what coordinates it should capture at, for example if you want to make 2 different clickable areas, you’d subscribe to 2 different click events at half width. Here’s how you call subscribe
-
-~~~lua
-helium.input.subscribe(x,y,w,h,eventName,callback,startActive)
-~~~
-
-and all the event names should be self explanatory in their function:
-
-**Basic Mouse events:**
-~~~lua
-mousepressed
-mousereleased
-mousepressed_outside
-mousereleased_outside
-~~~
-The same idea, just limited to your rectangle, _outside variant is called when a mouse event occurs outside your element.
-
-**Basic Keyboard events:**
-~~~lua
-keypressed
-keyreleased
-~~~
-An event that can capture key press and release events, depending if it’s active or not
-
-**Advanced mouse events:**
-~~~lua
-clicked
-~~~
-This event essentially boils down mousepressed+mousereleased&mousereleased_outside so that your button or whatever gets clicked and then unclicked, this has a special callback feature, if you wish to use it:
-
-~~~lua
-    local onClick = function ()
-        --activate code goes here
-        return function ()
-            --deactivate code goes here
-        end
-    end
-~~~
-It will trigger the first function whenever it’s being clicked/held down, and the second function after the mouse is released.
-
-You can also call **:on()** and **:off()** on the subscription that's returned from **helium.input.subscribe** when you desire to stop catching inputs(disabling a form, stopping keyboard input to your text area when you click outside etc.)
-
+		and if you need input, hook it up to the eventHandlers in your own love.run:
+```lua
+		if not(helium.input.eventHandlers[name]) or not(helium.input.eventHandlers[name](a, b, c, d, e, f)) then
+			love.handlers[name](a, b, c, d, e, f)
+		end
+```
