@@ -1,6 +1,6 @@
 return {
-    HOTSWAP = true, --Turns on hotswap, disable this once it's deployed
+    HOTSWAP = true, --Turns on hotswap, disable this once you're deploying a project
     AUTO_RUN = true, --Replaces the default love.run
 	DEBUG = true, --Reserved for later
-	PURE_G = true, --whether to set HeliumLoader global
+	PURE_G = true, --whether to keep _G pure
 }

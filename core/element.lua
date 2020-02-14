@@ -104,6 +104,8 @@ function element:new(w, h, param)
 		pendingUpdate        = true,
 		needsRendering       = true,
 		calculatedDimensions = true,
+		--Stabilize the internal canvas, draw it twice on first load
+		stabilize            = true,
 		inserted             = false
 	}
 
@@ -267,6 +269,11 @@ end
 local draw = love.graphics.draw
 function element:externalRender()
 	self.context:set()
+
+	if self.settings.stabilize and not self.settings.needsRendering then
+		self.settings.stabilize = false
+		self.settings.needsRendering = true
+	end
 
 	if self.settings.needsRendering then
 		self:renderWrapper()

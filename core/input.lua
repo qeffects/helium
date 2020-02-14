@@ -59,7 +59,13 @@ function context:set()
 end
 
 function context:update()
-
+	if self.parentCtx then
+		self.absX      = self.parentCtx.absX + self.elem.view.x
+		self.absY      = self.parentCtx.absY + self.elem.view.y
+	end
+	for i, e in ipairs(self.childContexts) do
+		e:update()
+	end
 	for i, sub in ipairs(self.subs) do
 		sub:contextUpdate(self.absX,self.absY,self)
 	end
@@ -93,8 +99,26 @@ end
 function subscription.create(x, y, w, h, eventType, callback, doff)
 	local sub
 	if activeContext then
-		local wratio = w/activeContext.elem.view.w
-		local hratio = h/activeContext.elem.view.h
+		local wratio,hratio,xratio,yratio
+		if x<=1 and x~=0 then
+			xratio = x
+			x = activeContext.elem.view.w * x
+		end
+		
+		if y<=1 and y~=0 then
+			yratio = y
+			y = activeContext.elem.view.h * y
+		end
+		
+		if w<=1 and w~=0 then
+			wratio = w
+			w = activeContext.elem.view.w * w
+		end
+
+		if h<=1 and h~=0 then
+			hratio = h
+			h = activeContext.elem.view.h * h
+		end
 
 		sub = setmetatable({
 			x         = activeContext.absX + x,
@@ -103,6 +127,8 @@ function subscription.create(x, y, w, h, eventType, callback, doff)
 			h         = h,
 			wratio = wratio,
 			hratio = hratio,
+			xratio = xratio,
+			yratio = yratio,
 			ix        = x,
 			iy        = y,
 			eventType = eventType,
@@ -146,10 +172,22 @@ function subscription:destroy()
 end
 
 function subscription:contextUpdate(absX, absY,activeContext)
-	self.x = absX + self.ix
-	self.y = absY + self.iy
-	self.w = activeContext.elem.view.w * self.wratio
-	self.h = activeContext.elem.view.h * self.hratio
+	if self.xratio then
+		self.x = absX + activeContext.elem.view.w * self.xratio
+	else
+		self.x = absX + self.ix
+	end
+	if self.yratio then
+		self.y = absY + activeContext.elem.view.h * self.yratio
+	else
+		self.y = absY + self.iy
+	end
+	if self.hratio then
+		self.h = activeContext.elem.view.h * self.hratio
+	end
+	if self.wratio then
+		self.w = activeContext.elem.view.w * self.wratio
+	end
 end
 
 function subscription:update(x, y, w, h)

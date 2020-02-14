@@ -202,8 +202,8 @@ helium.input
 ```
 
 ## All the user intended interfaces, classes and methods
-
- ## User facing functions
+-> is return value
+values with Capital are classes
  ```lua
 helium.element(function,reloader,w,h,parameters) 
 	->Element --Creates a new element
