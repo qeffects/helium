@@ -7,6 +7,7 @@ local input={
 	activeEvents  = {}
 }
 
+local dummyfunc = function() end
 ---@class subscription
 local subscription   = {}
 subscription.__index = subscription
@@ -58,8 +59,9 @@ function context:set()
 end
 
 function context:update()
+
 	for i, sub in ipairs(self.subs) do
-		sub:contextUpdate(self.absX,self.absY)
+		sub:contextUpdate(self.absX,self.absY,self)
 	end
 end
 
@@ -91,11 +93,16 @@ end
 function subscription.create(x, y, w, h, eventType, callback, doff)
 	local sub
 	if activeContext then
+		local wratio = w/activeContext.elem.view.w
+		local hratio = h/activeContext.elem.view.h
+
 		sub = setmetatable({
 			x         = activeContext.absX + x,
 			y         = activeContext.absY + y,
 			w         = w,
 			h         = h,
+			wratio = wratio,
+			hratio = hratio,
 			ix        = x,
 			iy        = y,
 			eventType = eventType,
@@ -138,9 +145,11 @@ function subscription:destroy()
 	self.active = false
 end
 
-function subscription:contextUpdate(absX, absY)
+function subscription:contextUpdate(absX, absY,activeContext)
 	self.x = absX + self.ix
 	self.y = absY + self.iy
+	self.w = activeContext.elem.view.w * self.wratio
+	self.h = activeContext.elem.view.h * self.hratio
 end
 
 function subscription:update(x, y, w, h)
@@ -248,7 +257,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 			local succ = sub:checkInside(x, y)
 
 			if succ and sub.active then
-				sub.cleanUp      = sub:emit(x, y, btn)
+				sub.cleanUp      = sub:emit(x, y, btn) or dummyfunc
 				sub.currentEvent = true
 				captured         = true
 			end
@@ -308,7 +317,7 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 			local succ = sub:checkInside(x, y)
 
 			if sub.active and not sub.currentEvent and succ then
-				sub.cleanUp      = sub:emit(x, y)
+				sub.cleanUp      = sub:emit(x, y) or dummyfunc
 				sub.currentEvent = true
 				captured         = true
 			elseif sub.currentEvent and not succ then
@@ -326,7 +335,7 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 		for index, sub in ipairs(input.subscriptions.dragged) do
 			if sub.active and sub.currentEvent then
 				if not sub.cleanUp then
-					sub.cleanUp  = sub:emit(x, y, dx, dy)
+					sub.cleanUp  = sub:emit(x, y, dx, dy) or dummyfunc
 				else
 					sub:emit(x, y, dx, dy)
 				end

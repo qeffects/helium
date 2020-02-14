@@ -20,7 +20,7 @@ function context:bubbleUpdate()
 	self.element.settings.pendingUpdate  = true
 	self.element.settings.needsRendering = true
 
-	if self.parentCtx then
+	if self.parentCtx and self.parentCtx~=self then
 		self.parentCtx:bubbleUpdate()
 	end
 end
@@ -68,10 +68,9 @@ setmetatable(element,{
 		__call = function(cls, ...)
 			local self
 			local func, loader, w, h, param = ...
-			if type(func)=='function' then
-				self = setmetatable({}, element)
-				self.parentFunc = func
-			end
+			
+			self = setmetatable({}, element)
+			self.parentFunc = func
 
 			if loader then
 				local function f(newFunc)
@@ -171,11 +170,16 @@ function element:reLoader(newFunc)
 	self.inputContext:destroy()
 
 	self.parentFunc = newFunc
-	self.renderer = self.parentFunc(self.parameters,self.state,self.view)
-	self.context:bubbleUpdate()
+
+	if type(self.parentFunc)=='function' then
+		self.renderer = self.parentFunc(self.parameters,self.state,self.view)
+	else
+		self.renderer = self.parentFunc
+	end
 
 	self.context:unset()
 	self.inputContext:unset()
+	self.context:bubbleUpdate()
 end
 
 local newCanvas,newQuad = love.graphics.newCanvas,love.graphics.newQuad
