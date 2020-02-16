@@ -211,6 +211,7 @@ end
 
 input.subscribe = subscription.create
 
+input.__call = subscription.create
 
 function input.eventHandlers.mousereleased(x, y, btn)
 	local captured = false

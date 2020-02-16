@@ -12,6 +12,12 @@ helium.input   = require(path..".core.input")
 helium.loader  = require(path..".loader")
 helium.elementBuffer = {}
 
+helium.__call = function(chunk)
+	return function(param,w,h)
+		return helium.element(chunk,nil,w,h,param)
+	end
+end
+
 function helium.render()
 	--We don't want any side effects affecting internal rendering
 	love.graphics.reset()
