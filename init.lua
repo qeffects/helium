@@ -11,8 +11,8 @@ helium.element = require(path..".core.element")
 helium.input   = require(path..".core.input")
 helium.loader  = require(path..".loader")
 helium.elementBuffer = {}
-
-helium.__call = function(chunk)
+helium.__index = helium
+helium.__call = function(s,chunk)
 	return function(param,w,h)
 		return helium.element(chunk,nil,w,h,param)
 	end
