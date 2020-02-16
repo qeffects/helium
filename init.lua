@@ -12,11 +12,11 @@ helium.input   = require(path..".core.input")
 helium.loader  = require(path..".loader")
 helium.elementBuffer = {}
 helium.__index = helium
-helium.__call = function(s,chunk)
+setmetatable(helium, {__call = function(s,chunk)
 	return function(param,w,h)
 		return helium.element(chunk,nil,w,h,param)
 	end
-end
+end})
 
 function helium.render()
 	--We don't want any side effects affecting internal rendering
