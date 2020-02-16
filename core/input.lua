@@ -211,7 +211,15 @@ end
 
 input.subscribe = subscription.create
 
-input.__call = subscription.create
+--Since the introduction of the relative subscriptions, there is more utility in ommiting coordinates by default
+input.__call = function(eventType,callback,cbOff,x,y,w,h)
+	x = x or 0
+	y = y or 0
+	w = w or 1
+	h = h or 1
+
+	subscription.create(x,y,w,h,eventType,callback,cbOff)
+end
 
 function input.eventHandlers.mousereleased(x, y, btn)
 	local captured = false
