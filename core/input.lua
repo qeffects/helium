@@ -213,7 +213,7 @@ end
 input.subscribe = subscription.create
 
 --Since the introduction of the relative subscriptions, there is more utility in ommiting coordinates by default
-input.__call = function(s, eventType, callback, cbOff, x, y, w, h)
+input.sub = function(eventType, callback, cbOff, x, y, w, h)
 	x = x or 0
 	y = y or 0
 	w = w or 1
