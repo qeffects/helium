@@ -63,6 +63,23 @@ end
 local element = {}
 element.__index = element
 
+function element.newProxy(base)
+	local base = base or {}
+	local fakeBase = {}
+	local activeContext = activeContext
+	return setmetatable({},{
+			__index = function(t, index)
+				return fakeBase[index] or base[index]
+			end,
+			__newindex = function(t, index, val)
+				if fakeBase[index] ~= val then
+					fakeBase[index] = val
+					activeContext:bubbleUpdate()
+				end
+			end
+		})
+end
+
 local type,pcall = type,pcall
 setmetatable(element,{
 		__call = function(cls, ...)
@@ -127,6 +144,9 @@ function element:new(w, h, param)
 				self.baseView[index] = val
 				self.context:bubbleUpdate()
 				self:updateInputCtx()
+				if self.view.onChange then
+					self.view.onChange()
+				end
 			end
 		end
 	})
@@ -147,6 +167,8 @@ function element:new(w, h, param)
 		self.settings.restrictView = true
 		return self.view
 	end
+
+	self:setup()
 end
 
 function element:updateInputCtx()
@@ -232,7 +254,10 @@ function element:classlessRender()
 
 	self.inputContext:set()
 	if type(self.renderer)=='function' then
+		love.graphics.push()
+		love.graphics.origin()
 		local status, err = pcall(self.renderer)
+		love.graphics.pop()
 
 		if not status then
 			setColor(1,0,0)
@@ -308,9 +333,6 @@ function element:draw(x, y)
 		if y then self.view.y = y end
 	end
 
-	if not self.settings.isSetup then
-		self:setup()
-	end
 
 	if activeContext then
 		self:externalRender()

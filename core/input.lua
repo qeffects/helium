@@ -136,7 +136,6 @@ function subscription.create(x, y, w, h, eventType, callback, doff)
 			active    = doff or true,
 			callback  = callback
 		},subscription)
-
 		activeContext.subs[#activeContext.subs+1] = sub
 	else
 		sub = setmetatable({
@@ -154,7 +153,7 @@ function subscription.create(x, y, w, h, eventType, callback, doff)
 		input.subscriptions[eventType] = {}
 	end
 
-	table.insert(input.subscriptions[eventType],sub)
+	input.subscriptions[eventType][#input.subscriptions[eventType]+1] = sub
 
 	return sub
 end
@@ -211,16 +210,24 @@ function subscription:checkOutside(x, y)
 end
 
 input.subscribe = subscription.create
-
---Since the introduction of the relative subscriptions, there is more utility in ommiting coordinates by default
-setmetatable(input, {__call = function(eventType, callback, cbOff, x, y, w, h)
+---@param eventType string
+---@param callback function
+---@param cbOff boolean
+---@param x number
+---@param y number
+---@param w number
+---@param h number
+input.__call = function(self, eventType, callback, cbOff, x, y, w, h)
 	x = x or 0
 	y = y or 0
 	w = w or 1
 	h = h or 1
+	
+	return subscription.create(x,y,w,h,eventType,callback,cbOff)
+end
 
-	subscription.create(x,y,w,h,eventType,callback,cbOff)
-end})
+--Since the introduction of the relative subscriptions, there is more utility in ommiting coordinates by default
+setmetatable(input, input)
 
 function input.eventHandlers.mousereleased(x, y, btn)
 	local captured = false
