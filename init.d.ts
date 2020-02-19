@@ -28,6 +28,6 @@ interface HeliumElement{
 declare function HeliumLoader(filepath:string):(params:parameters, w:number, h:number)=>HeliumElement;
 
 export module helium{
-    export let input: typeof import("./helium/core/input") ;
+    export let input: typeof import("./core/input") ;
 }
 export function helium<T>(chunk:(params:T,state:state,view:view)=>()=>void):(params:T, w:number, h:number)=>HeliumElement;
