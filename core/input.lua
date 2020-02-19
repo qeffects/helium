@@ -506,4 +506,6 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 	return captured
 end
 
+--Typescript
+input.input = input
 return input

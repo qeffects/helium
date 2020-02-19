@@ -5,7 +5,7 @@
 ----------------------------------------------------]]
 local path     = ...
 local helium   = require(path..".dummy")
-helium.conf    = require(path..".conf")
+helium.conf    = require(path..".local_conf") or require(path..".conf")
 helium.utils   = require(path..".utils")
 helium.element = require(path..".core.element")
 helium.input   = require(path..".core.input")
@@ -124,4 +124,6 @@ if helium.conf.AUTO_RUN then
 	end
 end
 
+--Typescript
+helium.helium = helium
 return helium
