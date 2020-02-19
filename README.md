@@ -34,18 +34,16 @@ end
 That's it, it's now a correct helium element
 
 So lets make a simple button!
-
-In helloWorld.lua:
 ```lua
 local input = require "helium.core.input" 
 
-return function(param,state,view)
+local button = function(param,state,view)
 	--Press state
 	state.pressed = false
 	--The callback for the input subscription
 	local callback = function() state.pressed = true end
 	--The actual input subscription 
-	input.subscribe(0,0,view.w,view.h,'clicked',callback)
+	input('clicked', callback)
 		
 	return function()
 		if state.pressed then
@@ -58,11 +56,9 @@ return function(param,state,view)
 		love.graphics.printf("Pressed? "..tostring(state.pressed),0,view.h/2-5,view.w,'center')
 	end
 end
-```
-And in main.lua:
-```lua
+
 local helium = require('helium')
-local buttonFactory = helium.loader('helloWorld.lua')
+local buttonFactory = helium(button)
 local button = buttonFactory({}, 200, 100)
 button:draw(10,10)
 ```
@@ -91,9 +87,9 @@ local callback = function() state.pressed = true end
 ```
 
 ---
-This is creating an input subscription for the event of your choice
+This is the new shorthand subscription model, where you only need to specify type and callback, for it to cover the whole element
 ```lua
-input.subscribe(0,0,view.w,view.h,'clicked',callback)
+input('clicked',callback)
 ```
 
 ---
@@ -113,7 +109,14 @@ end
 
 ## Additional details: 
 **view** is a table that holds the information about the position and size of an element
-x, y, w, h
+`view = {`
+fairly self explanatory:
+`x=1, y=1, w=1, h=1`
+Locks the element being moved from the outside with :draw(x,y)
+`lock,`
+An additonal callback, called whenever element is resized or repositioned
+`onChange}`
+
 Setting this from inside the element works as expected(so you can dynamically resize and reposition the element from inside)
 
 param is the table that you pass in buttonFactory({}, 200, 100), it can be anything you need
@@ -143,6 +146,15 @@ The outer function will be ran exactly once, so think of this as a 'load'/ 'init
 
 Element nesting works perfectly, updates get bubbled from children elements, position is relative to the parent's position and to boot, it'll all end up drawn on one canvas, cutting back on drawcalls
 
+**state.onUpdate, state.onDestroy, state.onFirstDraw**
+are optional callbacks you can supply and will be called at the appropriate time for the element's lifecycle
+
+**onUpdate** called when state changes
+
+**onDestroy** called just before the element is about to be :undraw()
+
+**onFirstDraw** called just before the first render
+
 
 ### Outside
 The elements aren't just sandboxed inside, there are a few user access intended fields, like Element.parameters, Element.state, Element.view, they are exactly the thing the internal functions get, so change or use them freely.
@@ -159,7 +171,7 @@ Element
 ```
 
 ## Input in depth
-Input is the main intended way of using/catching user input, it's all callback based, there are 2 types of input subscriptions: Basic, Advanced
+The Input module is the main intended way of using/catching user input, it's all callback based, there are 2 types of input subscriptions: Basic, Advanced
 
 
 **the basic events**, named after the ones in love, will pass in the same arguments as the love event handlers will, these are one-off events, that simply execute the callback if it falls within the subscription area.
@@ -174,12 +186,29 @@ function(x,y)
 	end
 end
 ```
-
 so you could subscribe to the 'clicked' event, change `state.clicked` to true, and in the second function change it back to false
+
+
+**Relative vs absolute sizing**
+When you subscribe to an element, you can chose how the subscription is sized,
+`x,y,w,h` all support this format of 0-1 = 0-100%, and 1-inf = 1px - infpx
+Now, where this might matter is in dynamically sized elements, say a window
+
+My reccomendation from experience:
+Stick to relative sizing for the subscriptions inside elements, and encapsulate all 
+subscriptions inside independent elements (so say you have a window, encapsulate the taskbar, close buttons etc)
+
+**Windowing**
+`helium.input.newWindow(x,y,w,h)`
+Say you need multiple layers of inputs in your UI, use this command to create a 'backdrop' for your modal element
+x,y work the same as subscriptions
+One thing to be careful about is, that as long as this element exists, it will block that region of screen from inputs,
+So use **state.onFirstDraw** and **state.onDestroy**
+
 
 the input structure:
 ```lua
-helium.input
+helium.input(subType,callback,starton,x,y,w,h) -- The new, preffered way of creating a subscription
     .subscribe(x, y, w, h, subType, callback, startOn)
         subType -- Subscription type
         callback -- Subscription callback on event

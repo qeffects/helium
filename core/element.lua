@@ -121,6 +121,7 @@ function element:new(w, h, param)
 		pendingUpdate        = true,
 		needsRendering       = true,
 		calculatedDimensions = true,
+		firstDraw            = true,
 		--Stabilize the internal canvas, draw it twice on first load
 		stabilize            = true,
 		inserted             = false
@@ -217,6 +218,9 @@ function element:setup()
 			__newindex = function(t, index, val)
 				if self.baseState[index] ~= val then
 					self.baseState[index] = val
+					if self.element.baseState.onUpdate then
+						self.element.baseState.onUpdate()
+					end
 					self.context:bubbleUpdate()
 				end
 			end
@@ -335,6 +339,13 @@ function element:draw(x, y)
 		if y then self.view.y = y end
 	end
 
+	if self.settings.firstDraw then
+		if self.element.baseState.onFirstDraw then
+			self.element.baseState.onFirstDraw()
+		end
+		self.settings.firstDraw = false
+	end
+
 	if not self.settings.isSetup then
 		self.inputContext:unsuspend()
 		self.settings.isSetup = true
@@ -349,7 +360,11 @@ function element:draw(x, y)
 end
 
 function element:undraw()
+	if self.element.baseState.onDestroy then
+		self.element.baseState.onDestroy()
+	end
 	self.settings.remove  = true
+	self.settings.firstDraw = true
 	self.settings.isSetup = false
 	self.inputContext:set()
 	self.inputContext:suspend()
