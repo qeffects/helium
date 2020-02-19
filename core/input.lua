@@ -8,6 +8,35 @@ local input={
 }
 input.__index = input
 
+local windowMachine = {}
+windowMachine.__index = windowMachine
+local windowCurrent = false
+
+--Go forward
+windowMachine.push = function(window)
+	windowMachine[#windowMachine+1] = window
+	windowCurrent = #windowMachine
+end
+
+--Go a level back
+windowMachine.pop = function()
+	windowMachine[#windowMachine] = nil
+	if windowCurrent>1 then
+		windowCurrent = windowCurrent-1
+	else
+		windowCurrent = false
+	end
+end
+
+windowMachine.get = function()
+	if windowCurrent then
+		return windowMachine[windowCurrent]
+	end
+end
+
+local activeWindow
+local windowStack = {}
+
 local dummyfunc = function() end
 ---@class subscription
 local subscription   = {}
@@ -44,7 +73,9 @@ function input.newContext(element)
 end
 
 function context:set()
-	if activeContext then
+	self.activeWindow = windowMachine.get()
+
+	if activeContext and activeContext~=self then
 		if not self.parentCtx then
 			activeContext.childContexts[#activeContext.childContexts+1] = self
 			self.parentCtx = activeContext
@@ -78,14 +109,31 @@ function context:unset()
 	else
 		activeContext = nil
 	end
+
 end
 
-function context:destroy()
+function context:afterLoad()
+	--If i created window, pop it
+	if self.window then 
+		windowMachine.pop()
+	end
+end
+
+function context:unsuspend()
 	for i, e in ipairs(self.subs) do
-		e:destroy()
+		e:unsuspend()
 	end
 	for i, e in ipairs(self.childContexts) do
-		e:destroy()
+		e:unsuspend()
+	end
+end
+
+function context:suspend()
+	for i, e in ipairs(self.subs) do
+		e:suspend()
+	end
+	for i, e in ipairs(self.childContexts) do
+		e:suspend()
 	end
 end
 
@@ -133,9 +181,17 @@ function subscription.create(x, y, w, h, eventType, callback, doff)
 			ix        = x,
 			iy        = y,
 			eventType = eventType,
-			active    = doff or true,
+			active    = true,
 			callback  = callback
 		},subscription)
+
+		if doff == false then
+			sub:off()
+		end
+
+		if activeContext.window or activeContext.activeWindow then
+			sub.parentWindow = activeContext.window or activeContext.activeWindow
+		end
 		activeContext.subs[#activeContext.subs+1] = sub
 	else
 		sub = setmetatable({
@@ -166,9 +222,14 @@ function subscription:on()
 	self.active = true
 end
 
-function subscription:destroy()
+function subscription:suspend()
 	self.destroyStat = true
+	self.preActive = self.active
 	self.active = false
+end
+
+function subscription:unsuspend()
+	self.active = self.preActive
 end
 
 function subscription:contextUpdate(absX, absY,activeContext)
@@ -226,16 +287,56 @@ input.__call = function(self, eventType, callback, cbOff, x, y, w, h)
 	return subscription.create(x,y,w,h,eventType,callback,cbOff)
 end
 
+--Will block ui clicks from going through it
+input.window = function(x,y,w,h)
+	x = x or 0
+	y = y or 0
+	w = w or 1
+	h = h or 1
+
+	activeContext.window = subscription.create(x,y,w,h,'window',nil,false)
+	windowMachine.push(activeContext.window)
+	windowStack[#windowStack+1] = activeContext.window
+	return activeContext.window
+end
+
+--Run once per applicable event
+--The windows should be basically pre sorted, so if something is a hit on a lower window
+--And is on a higher one too, the lower one is discarded 
+local hits = {}
+input.checkWindows = function(x,y)
+	local hit = false
+	for i = 1, #windowStack do
+		if windowStack[i]:checkInside(x,y) and windowStack[i].active then
+			hit = windowStack[i]
+		end
+	end
+	--Returns latest hit
+	return hit
+end
+
+--Run per sub
+function input.checkSub(sub,hit)
+	if sub.parentWindow and sub.parentWindow == hit then
+		print(sub.parentWindow)
+		return true
+	elseif not hit then
+		return true
+	end
+	return false
+end
+
 --Since the introduction of the relative subscriptions, there is more utility in ommiting coordinates by default
 setmetatable(input, input)
 
 function input.eventHandlers.mousereleased(x, y, btn)
 	local captured = false
+	local hit = input.checkWindows(x, y)
 	if input.subscriptions.mousereleased then
 		for index, sub in ipairs(input.subscriptions.mousereleased) do
 			--local succ = sub:checkInside(x, y)
 
-			if sub.active and sub:checkInside(x, y) then -- succ and sub:check
+			if sub.active and sub:checkInside(x, y) and input.checkSub(sub,hit) then -- succ and sub:check
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -246,7 +347,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 		for index, sub in ipairs(input.subscriptions.mousereleased_outside) do
 			--local succ = sub:checkOutside(x, y)
 
-			if sub.active and sub:checkOutside(x, y) then -- succ and sub.active then
+			if sub.active and sub:checkOutside(x, y) and input.checkSub(sub,hit) then -- succ and sub.active then
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -285,11 +386,12 @@ end
 
 function input.eventHandlers.mousepressed(x, y, btn)
 	local captured = false
+	local hit = input.checkWindows(x, y)
 	if input.subscriptions.mousepressed then
 		for index, sub in ipairs(input.subscriptions.mousepressed) do
 			--local succ = sub:checkInside(x, y)
 
-			if sub.active and sub:checkInside(x, y) then -- succ and sub:check
+			if sub.active and sub:checkInside(x, y) and input.checkSub(sub,hit) then -- succ and sub:check
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -300,7 +402,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 		for index, sub in ipairs(input.subscriptions.mousepressed_outside) do
 			--local succ = sub:checkOutside(x, y)
 
-			if sub.active and sub:checkOutside(x, y) then -- succ and sub.active then
+			if sub.active and sub:checkOutside(x, y) and input.checkSub(sub,hit) then -- succ and sub.active then
 				sub:emit(x, y, btn)
 				captured = true
 			end
@@ -311,7 +413,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 		for index, sub in ipairs(input.subscriptions.clicked) do
 			local succ = sub:checkInside(x, y)
 
-			if succ and sub.active then
+			if succ and sub.active and input.checkSub(sub,hit) then
 				sub.cleanUp      = sub:emit(x, y, btn) or dummyfunc
 				sub.currentEvent = true
 				captured         = true
@@ -324,7 +426,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 		for index, sub in ipairs(input.subscriptions.dragged) do
 			--local succ = sub:checkInside(x, y)
 
-			if sub.active and sub:checkInside(x, y) then -- succ and sub:check
+			if sub.active and sub:checkInside(x, y) and input.checkSub(sub,hit) then -- succ and sub:check
 				sub.currentEvent = true
 				captured         = true
 			end

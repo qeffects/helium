@@ -27,7 +27,7 @@ end
 
 function context:set()
 	if activeContext then
-		if not self.parentCtx then
+		if not self.parentCtx and activeContext~=self then
 			self.parentCtx = activeContext
 			activeContext.childrenContexts[#activeContext.childrenContexts] = self
 		end
@@ -169,6 +169,7 @@ function element:new(w, h, param)
 	end
 
 	self:setup()
+	self.settings.isSetup = true
 end
 
 function element:updateInputCtx()
@@ -244,6 +245,7 @@ function element:setup()
 	self.inputContext:set()	
 	self.renderer = self.parentFunc(self.parameters,self.state,self.view)
 	self.inputContext:unset()
+	self.inputContext:afterLoad()
 	self.context:unset()
 
 	self.settings.isSetup = true
@@ -333,6 +335,10 @@ function element:draw(x, y)
 		if y then self.view.y = y end
 	end
 
+	if not self.settings.isSetup then
+		self.inputContext:unsuspend()
+		self.settings.isSetup = true
+	end
 
 	if activeContext then
 		self:externalRender()
@@ -346,7 +352,8 @@ function element:undraw()
 	self.settings.remove  = true
 	self.settings.isSetup = false
 	self.inputContext:set()
-	self.inputContext:destroy()
+	self.inputContext:suspend()
+	self.inputContext:unset()
 end
 
 return element
