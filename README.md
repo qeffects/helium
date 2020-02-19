@@ -109,12 +109,26 @@ end
 
 ## Additional details: 
 **view** is a table that holds the information about the position and size of an element
+
+
 `view = {`
+
+
 fairly self explanatory:
+
+
 `x=1, y=1, w=1, h=1`
+
+
 Locks the element being moved from the outside with :draw(x,y)
+
+
 `lock,`
+
+
 An additonal callback, called whenever element is resized or repositioned
+
+
 `onChange}`
 
 Setting this from inside the element works as expected(so you can dynamically resize and reposition the element from inside)
@@ -206,64 +220,54 @@ One thing to be careful about is, that as long as this element exists, it will b
 So use **state.onFirstDraw** and **state.onDestroy**
 
 
-the input structure:
+## All the user intended interfaces, classes and methods
+### Classes
+#### Element
 ```lua
-helium.input(subType,callback,starton,x,y,w,h) -- The new, preffered way of creating a subscription
-    .subscribe(x, y, w, h, subType, callback, startOn)
-        subType -- Subscription type
-        callback -- Subscription callback on event
-        startOn -- a bool to disable a subscription by default
-    -> Subscription
-        :on() --Turns an inactive subscription on
-        :off() --Turns an active subscription off
-        
-    subType:
-        Advanced:
-         "clicked" (x,y,btn)--Gets called whenever the subscribed area is pressed, with an optional return callback
-		 "dragged" (x,y,deltaX,deltaY)--Gets called whenever the subscribed area is dragged, with an optional 'finish' callback
-		 "hover" ()--Gets called whenever a mouse enters the element
-        Basic events:
-         "mousepressed" (x,y,btn)--Gets called whenever the subscribed area gets pressed
-         "mousereleased" (x,y,btn)--Gets called whenever mouse is released in the subscription area
-         "mousepressed_outside" (x,y,btn)--This type gets called when mouse is pressed outside the subscription area
-         "mousereleased_outside" (x,y,btn)--This type gets called when mouse is released outside the sub area
-         "keypressed" (key)--Basic keyboard input
+    :draw(x,y) --Renders the element at a location
+	:undraw() --Removes the element from the render buffer
+	.state = {} --The current element state, accessible from outside
+	.parameters = {} --The current parameters, accessible from outside
+	.view = {x=0,y=0,w=0,h=0,locked=false}--The current view state, locked should be set by an element internally, if it's going to change the view table.
 ```
 
-## All the user intended interfaces, classes and methods
--> is return value
-values with Capital are classes
- ```lua
-helium.element(function,reloader,w,h,parameters) 
-	->Element --Creates a new element
-    	:draw(x,y) --Renders the element at a location
-		:undraw() --Removes the element from the render buffer
-		.state = {} --The current element state, accessible from outside
-		.parameters = {} --The current parameters, accessible from outside
-		.view = {x=0,y=0,w=0,h=0,locked=false}--The current view state, locked should be set by an element internally, if it's going to change the view table.
+#### Subscription
+```lua
+	:on() --Turns an inactive subscription on
+	:off() --Turns an active subscription off
+```
 
---The intended global loader for element files (supports optional live hotswapping)
-HeliumLoader(filepath) -> ElementFactory
-ElementFactory(parameters,w,h) -> Element
+#### Misc
+```lua
+ElementFactory(param, w, h) -> Element--Available either by calling helium directly or through HeliumLoader
+helium.element.newProxy({}) --Creates a new proxy table, that's tracked by the current element (changes inside will trigger a rerender)
+HeliumLoader(filepath) -> ElementFactory--Global
+```
 
-helium.input
-    .subscribe(x, y, w, h, subType, callback, startOn)
+#### User endpoints
+```lua
+helium(function)->ElementFactory --Calling the library directly with a function will create a new factory
+
+helium.input(subType,callback,starton,x,y,w,h) -- The new, preffered way of creating a subscription, if no x,y,w,h provided will cover whole element
+
+helium.input.newWindow(x, y, w, h) --Creates an input block (nothing behind will be triggered)
+
+helium.input.subscribe(x, y, w, h, subType, callback, startOn) --Old input method
         subType -- Subscription type
         callback -- Subscription callback on event
         startOn -- a bool to disable a subscription by default
-    -> Subscription
-        :on() --Turns an inactive subscription on
-        :off() --Turns an active subscription off
-        
-    subType:
-        Advanced:
-         "clicked" --Gets called whenever the subscribed area is pressed, with an optional return callback
-		 "dragged" --Gets called whenever the subscribed area is dragged, with an optional 'finish' callback
-		 "hover" --Gets called whenever a mouse enters the element
-        Basic events:
-         "mousepressed" --Gets called whenever the subscribed area gets pressed
-         "mousereleased" --Gets called whenever mouse is released in the subscription area
-         "mousepressed_outside" --This type gets called when mouse is pressed outside the subscription area
-         "mousereleased_outside" --This type gets called when mouse is released outside the sub area
-         "keypressed" --Basic keyboard input
+```
+
+#### Subscription Types: 
+```lua
+Advanced:
+    "clicked" --Gets called whenever the subscribed area is pressed, with an optional return callback
+	"dragged" --Gets called whenever the subscribed area is dragged, with an optional 'finish' callback
+	"hover" --Gets called whenever a mouse enters the element
+Basic events:
+    "mousepressed" --Gets called whenever the subscribed area gets pressed
+    "mousereleased" --Gets called whenever mouse is released in the subscription area
+    "mousepressed_outside" --This type gets called when mouse is pressed outside the subscription area
+	"mousereleased_outside" --This type gets called when mouse is released outside the sub area
+	"keypressed" --Basic keyboard input
 ```
