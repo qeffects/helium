@@ -507,5 +507,5 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 end
 
 --Typescript
-input.input = input
+input.default = input
 return input
