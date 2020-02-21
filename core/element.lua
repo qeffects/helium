@@ -218,8 +218,8 @@ function element:setup()
 			__newindex = function(t, index, val)
 				if self.baseState[index] ~= val then
 					self.baseState[index] = val
-					if self.element.baseState.onUpdate then
-						self.element.baseState.onUpdate()
+					if self.baseState.onUpdate then
+						self.baseState.onUpdate()
 					end
 					self.context:bubbleUpdate()
 				end
@@ -340,8 +340,8 @@ function element:draw(x, y)
 	end
 
 	if self.settings.firstDraw then
-		if self.element.baseState.onFirstDraw then
-			self.element.baseState.onFirstDraw()
+		if self.baseState.onFirstDraw then
+			self.baseState.onFirstDraw()
 		end
 		self.settings.firstDraw = false
 	end
@@ -360,8 +360,8 @@ function element:draw(x, y)
 end
 
 function element:undraw()
-	if self.element.baseState.onDestroy then
-		self.element.baseState.onDestroy()
+	if self.baseState.onDestroy then
+		self.baseState.onDestroy()
 	end
 	self.settings.remove  = true
 	self.settings.firstDraw = true

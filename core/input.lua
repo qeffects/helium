@@ -474,7 +474,7 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 			local succ = sub:checkInside(x, y)
 
 			if sub.active and not sub.currentEvent and succ then
-				sub.cleanUp      = sub:emit(x, y) or dummyfunc
+				sub.cleanUp      = sub:emit(x, y, dx, dy) or dummyfunc
 				sub.currentEvent = true
 				captured         = true
 			elseif sub.currentEvent and not succ then
