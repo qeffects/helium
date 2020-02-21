@@ -318,7 +318,6 @@ end
 --Run per sub
 function input.checkSub(sub,hit)
 	if sub.parentWindow and sub.parentWindow == hit then
-		print(sub.parentWindow)
 		return true
 	elseif not hit then
 		return true
