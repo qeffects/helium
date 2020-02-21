@@ -94,6 +94,9 @@ function context:update()
 	if self.parentCtx then
 		self.absX      = self.parentCtx.absX + self.elem.view.x
 		self.absY      = self.parentCtx.absY + self.elem.view.y
+	else
+		self.absX = self.elem.view.x
+		self.absY = self.elem.view.y
 	end
 	for i, e in ipairs(self.childContexts) do
 		e:update()
