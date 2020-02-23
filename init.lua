@@ -45,7 +45,7 @@ function helium.update(dt)
 	if remove then
 		helium.utils.ArrayRemove(helium.elementBuffer, function(t, i)
 			--returns false or (true if nil)
-			return (not t[i].settings.remove)
+			return (t[i].settings.remove)
 		end)
 	end
 

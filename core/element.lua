@@ -334,6 +334,7 @@ local insert = table.insert
 ---@param x number
 ---@param y number
 function element:draw(x, y)
+	self.settings.remove =false
 	if not self.view.lock then
 		if x then self.view.x = x end
 		if y then self.view.y = y end
