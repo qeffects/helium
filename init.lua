@@ -32,23 +32,11 @@ function helium.update(dt)
 		helium.loader.update(dt)
 	end
 
-	local remove = false
-
-	for i, e in ipairs(helium.elementBuffer) do
-		if e.settings.remove then
-			remove = true
-		else
-			e:externalUpdate()
+	for i = #helium.elementBuffer, 1, -1 do
+		if helium.elementBuffer[i]:externalUpdate() then
+			table.remove(helium.elementBuffer,i)
 		end
 	end
-
-	if remove then
-		helium.utils.ArrayRemove(helium.elementBuffer, function(t, i)
-			--returns false or (true if nil)
-			return (t[i].settings.remove)
-		end)
-	end
-
 end
 
 --[[

@@ -266,6 +266,9 @@ function element:classlessRender()
 		love.graphics.pop()
 
 		if not status then
+			if helium.conf.HARD_ERROR then
+				error(status)
+			end
 			setColor(1,0,0)
 			rectangle('line',0,0,self.view.w,self.view.h)
 			setColor(1,1,1)
@@ -273,6 +276,9 @@ function element:classlessRender()
 		end
 
 	elseif type(self.renderer)=='string' then
+		if helium.conf.HARD_ERROR then
+			error(self.renderer)
+		end
 		setColor(1,0,0)
 		rectangle('line',0,0,self.view.w,self.view.h)
 		setColor(1,1,1)
@@ -326,6 +332,7 @@ function element:externalUpdate()
 		self.settings.needsRendering = true
 		self.settings.pendingUpdate  = false
 	end
+	return self.settings.remove
 end
 
 local insert = table.insert
@@ -334,13 +341,13 @@ local insert = table.insert
 ---@param x number
 ---@param y number
 function element:draw(x, y)
-	self.settings.remove =false
 	if not self.view.lock then
 		if x then self.view.x = x end
 		if y then self.view.y = y end
 	end
 
 	if self.settings.firstDraw then
+		self.settings.remove = false
 		if self.baseState.onFirstDraw then
 			self.baseState.onFirstDraw()
 		end
