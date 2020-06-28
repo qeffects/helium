@@ -12,10 +12,16 @@ helium.input   = require(path..".core.input")
 helium.loader  = require(path..".loader")
 helium.elementBuffer = {}
 helium.__index = helium
-setmetatable(helium, {__call = function(s,chunk)
-	return function(param,w,h)
-		return helium.element(chunk,nil,w,h,param)
-	end
+
+setmetatable(helium, {__call = function(s, chunk)
+	return {
+		__call = function(s, param, w, h)
+			return helium.element(chunk, nil, w, h, param)
+		end,
+		draw = function (param, x, y, w, h)
+			return helium.element.immediate(param, chunk, x, y, w, h)
+		end
+	}
 end})
 
 function helium.render()

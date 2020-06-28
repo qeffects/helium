@@ -1,8 +1,8 @@
 local path = string.sub(..., 1, string.len(...) - string.len(".control.state"))
-local context = require(path.. ".core.context")
+local context = require(path.. ".core.stack")
 
 return function (base)
-	local base = base or {}
+	base = base or {}
 	local fakeBase = {}
 	local activeContext = context.getContext()
 	return setmetatable({},{

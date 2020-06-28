@@ -87,14 +87,23 @@ function element:new(param)
 	self.context = context.new(self)
 end
 
+function element:setCalculatedSize(w, h)
+	self.view.minW = w or self.view.minW
+	self.view.minH = h or self.view.minH
+	self.view.w = math.max(self.view.minW, self.view.w)
+	self.view.h = math.max(self.view.minH, self.view.h)
+end
+
 function element:updateInputCtx()
 	self.context.inputContext:update()
 	if self.settings.canvasW then
+		--If canvas too small make a bigger one
 		if self.settings.canvasW < self.view.w or self.settings.canvasH < self.view.h then
 			self.settings.canvasW = self.view.w*1.25
 			self.settings.canvasH = self.view.h*1.25
 
 			self.canvas = love.graphics.newCanvas(self.view.w*1.25, self.view.h*1.25)
+		--If canvas too big make a smaller one
 		elseif self.settings.canvasW > self.view.w*1.50 or self.settings.canvasH > self.view.h*1.50 then
 			self.settings.canvasW = self.view.w*1.25
 			self.settings.canvasH = self.view.h*1.25
@@ -246,10 +255,12 @@ local insert = table.insert
 --Acts as the entrypoint for beginning rendering
 ---@param x number
 ---@param y number
-function element:draw(x, y)
+function element:draw(x, y, w, h)
 	if not self.view.lock then
 		if x then self.view.x = x end
 		if y then self.view.y = y end
+		if w then self.view.w = self.view.minW<=w and w or self.view.minW end
+		if h then self.view.h = self.view.minH<=h and h or self.view.minH end
 	end
 
 	if self.settings.firstDraw then
