@@ -25,6 +25,7 @@ setmetatable(element, {
 			end
 
 			self:new(param)
+			self:createProxies(param)
 
 			return self
 		end
@@ -32,12 +33,9 @@ setmetatable(element, {
 
 --Control functions
 --The new function that should be used for element creation
-function element:new(param)
-	local dimensions
-	--save the parameters
+function element:new(param, immediate)
 	self.parameters = {}
 
-	--The element canvas
 	self.baseParams = param
 
 	--Internal settings
@@ -54,12 +52,10 @@ function element:new(param)
 		--Has it been inserted in to the buffer
 		inserted             = false,
 		--Whether this element is created and drawn instantly (and doesn't need a canvas)
-		immediate            = false,
+		immediate            = immediate or false,
 		--Render this element in the external buffer with absolute coordinates
 		absolutePosition     = false,
 	}
-
-	self.baseState = {}
 
 	self.baseView = {
 		x = 0,
@@ -69,7 +65,12 @@ function element:new(param)
 		minW = 10,
 		minH = 10,
 	}
+	
+	self.view = self.baseView
 
+end
+
+function element:createProxies()
 	self.view = setmetatable({}, {
 		__index = function(t, index)
 			return self.baseView[index]
@@ -83,8 +84,25 @@ function element:new(param)
 		end
 	})
 
+	self.parameters = setmetatable({}, {
+		__index = function(t, index)
+			return self.baseParams[index]
+		end,
+		__newindex = function(t, index, val)
+			if self.baseParams[index] ~= val then
+				self.baseParams[index] = val
+				self.context:bubbleUpdate()
+			end
+		end
+	})
+
 	--Context makes sure element internals don't have to worry about absolute coordinates
 	self.context = context.new(self)
+end
+
+function element:setParam(p)
+	self.baseParams = p
+	self.context:bubbleUpdate()
 end
 
 function element:setCalculatedSize(w, h)
@@ -115,45 +133,23 @@ function element:updateInputCtx()
 	end
 end
 
+local dummy = function() end
 --Immediate mode code(don't call directly)
 function element.immediate(param, func, x, y, w, h)
-
-end
-
-
---Hotswapping code
-
-function element:reLoader(newFunc)
-	self.context:set()
-
-	self.parentFunc = newFunc
-
-	if type(self.parentFunc) == 'function' then
-		self.renderer = self.parentFunc(self.parameters, self.state, self.view)
+	--Need to capture this by the current parent context
+	--Todo:
+	local ctx = context.getContext()
+	if ctx then
+		local self = setmetatable({}, element)
+		self = element:new(param, true)
 	else
-		self.renderer = self.parentFunc
+		error("Can't render immediate outside of element")
 	end
-
-	self.context:unset()
-	self.context:bubbleUpdate()
 end
 
-local newCanvas,newQuad = love.graphics.newCanvas,love.graphics.newQuad
+local newCanvas, newQuad = love.graphics.newCanvas, love.graphics.newQuad
 --Called once dimensions are validated
 function element:setup()
-
-	self.parameters = setmetatable({}, {
-			__index = function(t, index)
-				return self.baseParams[index]
-			end,
-			__newindex = function(t, index, val)
-				if self.baseParams[index] ~= val then
-					self.baseParams[index] = val
-					self.context:bubbleUpdate()
-				end
-			end
-		})
-
 	self.context:set()
 	self.renderer = self.parentFunc(self.parameters, self.view.w, self.view.h)
 	self.context:unset()
@@ -167,7 +163,7 @@ function element:setup()
 	self.settings.isSetup = true
 end
 
-local setColor,rectangle,setFont,printf = love.graphics.setColor,love.graphics.rectangle,love.graphics.setFont,love.graphics.printf
+local setColor, rectangle, setFont, printf = love.graphics.setColor, love.graphics.rectangle, love.graphics.setFont, love.graphics.printf
 function element:errorRender(msg)
 	setColor(1, 0, 0)
 	rectangle('line', 0, 0, self.view.w, self.view.h)
@@ -176,7 +172,6 @@ function element:errorRender(msg)
 end
 
 function element:internalRender()
-
 	if type(self.renderer) == 'function' then
 		love.graphics.push()
 		love.graphics.origin()
@@ -198,13 +193,8 @@ function element:internalRender()
 	end
 end
 
-local getCanvas,setCanvas,clear = love.graphics.getCanvas,love.graphics.setCanvas,love.graphics.clear
+local getCanvas, setCanvas, clear = love.graphics.getCanvas, love.graphics.setCanvas, love.graphics.clear
 function element:renderWrapper()
-	if not self.settings.isSetup then
-		self:setup()
-		self.settings.isSetup = true
-	end
-
 	self.context:set()
 	local cnvs = getCanvas()
 	setCanvas({self.canvas, stencil = true})
@@ -225,6 +215,11 @@ function element:externalRender()
 	if self.settings.stabilize and not self.settings.needsRendering then
 		self.settings.stabilize = false
 		self.settings.needsRendering = true
+	end
+
+	if not self.settings.isSetup then
+		self:setup()
+		self.settings.isSetup = true
 	end
 
 	if self.settings.needsRendering then
@@ -265,9 +260,6 @@ function element:draw(x, y, w, h)
 
 	if self.settings.firstDraw then
 		self.settings.remove = false
-		if self.baseState.onFirstDraw then
-			self.baseState.onFirstDraw()
-		end
 		self.settings.firstDraw = false
 	end
 
@@ -280,9 +272,6 @@ function element:draw(x, y, w, h)
 end
 
 function element:destroy()
-	if self.baseState.onDestroy then
-		self.baseState.onDestroy()
-	end
 	self.settings.remove  = true
 	self.settings.firstDraw = true
 	self.settings.isSetup = false

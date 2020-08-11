@@ -68,7 +68,7 @@ end
 
 function context:destroy()
     self.elem:undraw()
-    for i=1,#self.childrenContexts do
+    for i = 1, #self.childrenContexts do
         self.childrenContexts[i]:destroy()
     end
 end

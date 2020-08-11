@@ -15,11 +15,12 @@ helium.__index = helium
 
 setmetatable(helium, {__call = function(s, chunk)
 	return setmetatable({
-		draw = function (param, x, y, w, h)
-			return helium.element.immediate(param, chunk, x, y, w, h)
+		draw = function (param, inputs, x, y, w, h)
+			return helium.element.immediate(param, inputs, chunk, x, y, w, h)
 		end
-	},{__call = function(s, param)
-		return helium.element(chunk, nil, param)
+	}, 
+	{__call = function(s, param)
+		return helium.element(chunk, param)
 	end,})
 end})
 
