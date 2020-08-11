@@ -14,14 +14,13 @@ helium.elementBuffer = {}
 helium.__index = helium
 
 setmetatable(helium, {__call = function(s, chunk)
-	return {
-		__call = function(s, param, w, h)
-			return helium.element(chunk, nil, w, h, param)
-		end,
+	return setmetatable({
 		draw = function (param, x, y, w, h)
 			return helium.element.immediate(param, chunk, x, y, w, h)
 		end
-	}
+	},{__call = function(s, param)
+		return helium.element(chunk, nil, param)
+	end,})
 end})
 
 function helium.render()
@@ -112,7 +111,7 @@ if helium.conf.AUTO_RUN then
 
 				love.graphics.present()
 			end
-
+			
 			if love.timer then love.timer.sleep(0.001) end
 		end
 	end

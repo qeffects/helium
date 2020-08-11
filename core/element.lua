@@ -12,7 +12,7 @@ local type,pcall = type,pcall
 setmetatable(element, {
 		__call = function(cls, ...)
 			local self
-			local func, loader, w, h, param = ...
+			local func, loader, param = ...
 			
 			self = setmetatable({}, element)
 			self.parentFunc = func
@@ -24,7 +24,7 @@ setmetatable(element, {
 				loader(f)
 			end
 
-			self:new(w, h, param)
+			self:new(param)
 
 			return self
 		end
