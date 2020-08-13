@@ -19,15 +19,14 @@ setmetatable(helium, {__call = function(s, chunk)
 			return helium.element.immediate(param, inputs, chunk, x, y, w, h)
 		end
 	}, 
-	{__call = function(s, param)
-		return helium.element(chunk, param)
+	{__call = function(s, param, w, h)
+		return helium.element(chunk, param, w, h)
 	end,})
 end})
 
 function helium.render()
 	--We don't want any side effects affecting internal rendering
 	love.graphics.reset()
-
 	for i, e in ipairs(helium.elementBuffer) do
 		e:externalRender()
 	end

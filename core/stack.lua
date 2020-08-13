@@ -15,7 +15,8 @@ function context.new(elem)
         view = elem.view,
         element = elem,
         childrenContexts = {},
-        inputContext = helium.input.newContext(elem)
+		inputContext = helium.input.newContext(elem),
+		childRenderTime = 0
     }, context)
 
     return ctx
@@ -66,6 +67,21 @@ function context:unsuspend()
     self.inputContext:unsuspend()
 end
 
+function context:startSelfRender()
+	self.childRenderTime = 0
+end
+
+function context:passTimeTo(time)
+	self.childRenderTime = self.childRenderTime + time
+end
+
+function context:endSelfRender(time)
+	if self.parentCtx then
+		self.parentCtx:passTimeTo(time)
+	end
+	return time-self.childRenderTime
+end
+
 function context:destroy()
     self.elem:undraw()
     for i = 1, #self.childrenContexts do
@@ -79,10 +95,15 @@ function context:suspend()
 	self.inputContext:unset()
 end
 
+function context:getChildrenCount()
+	return #self.childrenContexts
+end
+
 --Function meant for external context capture
 function context.getContext()
     return activeContext
 end
+
 
 
 return context
