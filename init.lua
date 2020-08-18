@@ -34,7 +34,7 @@ function helium.render()
 		for i = 1, 20 do
 			love.graphics.print(i)
 		end
-		helium.element.setBench((love.timer.getTime()-startTime)/5)
+		helium.element.setBench((love.timer.getTime()-startTime)/9)
 
 		first = false
 		--love.graphics.setScissor()

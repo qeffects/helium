@@ -48,7 +48,7 @@ function element:new(param, immediate, w, h)
 		--Whether this element has a canvas assigned
 		hasCanvas            = false,
 		--Current test render passes to be benchmarked
-		testRenderPasses     = love.math.random(10, 15),
+		testRenderPasses     = 20,
 		--
 		failedCanvas         = false
 	}
@@ -102,7 +102,7 @@ end
 
 --Random coefficients, if these reach 1.5 then canvas is made
 local childrenNum = 5
-local selfRenderTime = 0
+local selfRenderTime = false
 local screenSize = 1/50
 local coefficient = 1.5
 
@@ -198,12 +198,12 @@ end
 local calcT
 
 function element:internalRender()
-	if self.settings.testRenderPasses > 0 then
+	if self.settings.testRenderPasses > 0 and selfRenderTime then
 		calcT = love.timer.getTime()
 	end
 
 	local status, err = pcall(self.renderer)
-	if self.settings.testRenderPasses > 0 then
+	if self.settings.testRenderPasses > 0 and selfRenderTime then
 		self.settings.testRenderPasses = self.settings.testRenderPasses-1
 		local selfTime = love.timer.getTime()-calcT
 		table.insert(self.renderBench, self.context:endSelfRender(selfTime))
