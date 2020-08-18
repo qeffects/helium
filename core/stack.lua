@@ -40,11 +40,17 @@ function context:set()
 
         self.absX      = self.parentCtx.absX + self.view.x
         self.absY      = self.parentCtx.absY + self.view.y
+		
+		self.offsetX   = self.view.x +self.parentCtx.offsetX
+		self.offsetY   = self.view.y +self.parentCtx.offsetY
 
         activeContext  = self
     else
         self.absX      = self.view.x
-        self.absY      = self.view.y
+		self.absY      = self.view.y
+		
+		self.offsetX   = 0
+		self.offsetY   = 0
 
         activeContext  = self
     end

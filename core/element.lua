@@ -48,7 +48,7 @@ function element:new(param, immediate, w, h)
 		--Whether this element has a canvas assigned
 		hasCanvas            = false,
 		--Current test render passes to be benchmarked
-		testRenderPasses     = love.math.random(3, 6),
+		testRenderPasses     = love.math.random(10, 15),
 		--
 		failedCanvas         = false
 	}
@@ -102,9 +102,13 @@ end
 
 --Random coefficients, if these reach 1.5 then canvas is made
 local childrenNum = 5
-local selfRenderTime = 0.0005
-local screenSize = 1/8
+local selfRenderTime = 0
+local screenSize = 1/50
 local coefficient = 1.5
+
+function element.setBench(time)
+	selfRenderTime = time
+end
 
 function element:calculateCanvasCoeficient(selfTime)
 	local sW, sH = love.graphics.getDimensions()
@@ -113,8 +117,7 @@ function element:calculateCanvasCoeficient(selfTime)
 
 	local areaCoef = 1 - (area/areaBelow)
 	local childCoef = self.context:getChildrenCount()/childrenNum
-	local sizeCoef = selfTime/selfRenderTime 
-
+	local sizeCoef = selfTime/selfRenderTime
 	
 	return (areaCoef+childCoef+sizeCoef)>coefficient
 end
@@ -141,8 +144,8 @@ function element:setCalculatedSize(w, h)
 end
 
 function element:updateInputCtx()
-	--self.context.inputContext:update()
-	--[[if self.settings.canvasW then
+	self.context.inputContext:update()
+	if self.settings.canvasW then
 		--If canvas too small make a bigger one
 		if self.settings.canvasW < self.view.w or self.settings.canvasH < self.view.h then
 			self.settings.canvasW = self.view.w*1.25
@@ -158,7 +161,7 @@ function element:updateInputCtx()
 		end
 	
 		self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.settings.canvasW, self.settings.canvasH)
-	end]]
+	end
 end
 
 local dummy = function() end
@@ -195,24 +198,16 @@ end
 local calcT
 
 function element:internalRender()
-	love.graphics.push()
-	if self.settings.hasCanvas then
-		love.graphics.origin()
-	else
-		love.graphics.translate(self.view.x, self.view.y)
-		local gx, gy = love.graphics.transformPoint(self.view.x, self.view.y)
-	end
 	if self.settings.testRenderPasses > 0 then
 		calcT = love.timer.getTime()
 	end
+
 	local status, err = pcall(self.renderer)
 	if self.settings.testRenderPasses > 0 then
 		self.settings.testRenderPasses = self.settings.testRenderPasses-1
 		local selfTime = love.timer.getTime()-calcT
 		table.insert(self.renderBench, self.context:endSelfRender(selfTime))
 	end
-
-	love.graphics.pop()
 
 	if not status then
 		if helium.conf.HARD_ERROR then
@@ -227,39 +222,48 @@ local getCanvas, setCanvas, clear = love.graphics.getCanvas, love.graphics.setCa
 function element:renderWrapper()
 	self.context:set()
 
-	clear()
-
 	if self.parameters then
 		self:internalRender()
-		self.settings.pendingUpdate = false
 	end
 
 	self.context:unset()
-
 end
 
 function element:externalRender()
 	local cnvs = getCanvas()
+	love.graphics.push('all')
+	love.graphics.translate(self.view.x, self.view.y)
 
 	if not self.settings.isSetup then
 		self:setup()
 		self.settings.isSetup = true
 	end
 
-	setCanvas(self.canvas)
 	if self.settings.needsRendering then
-		self:renderWrapper()
-		self.settings.needsRendering = not self.settings.hasCanvas
+		if self.settings.hasCanvas then
+			setCanvas(self.canvas)
+			love.graphics.clear(0,0,0,0)
+			love.graphics.push('all')
+			love.graphics.origin()
+
+			self:renderWrapper()
+			self.settings.needsRendering = false
+
+			love.graphics.pop()
+		else
+			self:renderWrapper()
+		end
 	end
 
 	setCanvas(cnvs)
-	if self.settings.hasCanvas then
 
-		setColor(1,1,1)
-		draw(self.canvas, self.quad, self.view.x, self.view.y)
-		love.graphics.rectangle('line', self.view.x, self.view.y, self.view.w, self.view.h)
+	if self.settings.hasCanvas then
+		setColor(1,1,1,1)
+		draw(self.canvas, self.quad, 0, 0)
+		love.graphics.rectangle('line', 1, 1, self.view.w-1, self.view.h-1)
 	end
-	print(self.view.x, self.view.y)
+
+	love.graphics.pop()
 end
 
 function element:externalUpdate()
@@ -273,17 +277,18 @@ function element:externalUpdate()
 		avg = sum/#self.renderBench
 
 		if self:calculateCanvasCoeficient(avg) then
+			love.graphics.push()
+			love.graphics.origin()
 			self:createCanvas()
+			love.graphics.pop()
 			self.settings.hasCanvas = true
+			self.settings.pendingUpdate = true
 		else
 			self.settings.failedCanvas = true
 		end
 	end
-	if self.settings.pendingUpdate then
-		if self.updater then
-			self:updater()
-		end
 
+	if self.settings.pendingUpdate then
 		self.settings.needsRendering = true
 		self.settings.pendingUpdate  = false
 	end
@@ -311,6 +316,7 @@ function element:draw(x, y, w, h)
 	end
 
 	if context.getContext() then
+		self:externalUpdate()
 		self:externalRender()
 	elseif not self.settings.inserted then
 		self.settings.inserted = true

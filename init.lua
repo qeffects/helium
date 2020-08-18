@@ -24,7 +24,24 @@ setmetatable(helium, {__call = function(s, chunk)
 	end,})
 end})
 
+local first = true
+local skip = true
 function helium.render()
+	if first and not skip then
+		--love.graphics.setScissor(500, 500, 1, 1)
+
+		local startTime = love.timer.getTime()
+		for i = 1, 20 do
+			love.graphics.print(i)
+		end
+		helium.element.setBench((love.timer.getTime()-startTime)/5)
+
+		first = false
+		--love.graphics.setScissor()
+	elseif first then
+		skip = false
+	end
+
 	--We don't want any side effects affecting internal rendering
 	love.graphics.reset()
 	for i, e in ipairs(helium.elementBuffer) do
