@@ -32,7 +32,7 @@ function helium.render()
 
 		local startTime = love.timer.getTime()
 		for i = 1, 20 do
-			love.graphics.print(i)
+			love.graphics.print(i,-100,-100)
 		end
 		helium.element.setBench((love.timer.getTime()-startTime)/9)
 
@@ -117,14 +117,19 @@ if helium.conf.AUTO_RUN then
 
 			-- Call update and draw
 			if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
+			local st = love.timer.getTime()
 			helium.update(dt)
+			heliumTime = love.timer.getTime()-st
 
 			if love.graphics and love.graphics.isActive() then
 				love.graphics.origin()
 				love.graphics.clear(love.graphics.getBackgroundColor())
 
 				if love.draw then love.draw() end
+
+				st = love.timer.getTime()
 				helium.render()
+				heliumTime=heliumTime+love.timer.getTime()-st
 
 				love.graphics.present()
 			end

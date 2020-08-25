@@ -104,7 +104,7 @@ end
 local childrenNum = 5
 local selfRenderTime = false
 local screenSize = 1/50
-local coefficient = 1.5
+local coefficient = 1000000
 
 function element.setBench(time)
 	selfRenderTime = time
@@ -260,6 +260,7 @@ function element:externalRender()
 	if self.settings.hasCanvas then
 		setColor(1,1,1,1)
 		draw(self.canvas, self.quad, 0, 0)
+		setColor(0,1,0,0.5)
 		love.graphics.rectangle('line', 1, 1, self.view.w-1, self.view.h-1)
 	end
 
