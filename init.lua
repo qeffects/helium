@@ -10,6 +10,7 @@ helium.utils   = require(path..".utils")
 helium.element = require(path..".core.element")
 helium.input   = require(path..".core.input")
 helium.loader  = require(path..".loader")
+helium.atlas   = require(path..".core.atlas")
 helium.elementBuffer = {}
 helium.__index = helium
 
@@ -26,7 +27,18 @@ end})
 
 local first = true
 local skip = true
-function helium.render()
+
+function helium.load()
+	helium.atlas.load()
+end
+
+function helium.unload()
+	helium.atlas.unassignAll()
+	helium.elementBuffer = {}
+end
+
+
+function helium.draw()
 	if first and not skip then
 		--love.graphics.setScissor(500, 500, 1, 1)
 
@@ -86,7 +98,7 @@ end
 ]]
 if helium.conf.AUTO_RUN then
 	function love.run()
-		if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
+		if love.load then love.load() end--love.arg.parseGameArguments(arg), arg) end
 
 		-- We don't want the first frame's dt to include time taken by love.load.
 		if love.timer then love.timer.step() end
@@ -128,7 +140,7 @@ if helium.conf.AUTO_RUN then
 				if love.draw then love.draw() end
 
 				st = love.timer.getTime()
-				helium.render()
+				helium.draw()
 				heliumTime=heliumTime+love.timer.getTime()-st
 
 				love.graphics.present()

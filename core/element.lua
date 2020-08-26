@@ -4,7 +4,7 @@ local path = string.sub(..., 1, string.len(...) - string.len(".core.element"))
 local helium = require(path .. ".dummy")
 local context = require(path.. ".core.stack")
 
----@class element
+---@class Element
 local element = {}
 element.__index = element
 
@@ -103,8 +103,8 @@ end
 --Random coefficients, if these reach 1.5 then canvas is made
 local childrenNum = 5
 local selfRenderTime = false
-local screenSize = 1/50
-local coefficient = 1000000
+local screenSize = 1/4
+local coefficient = 1.50
 
 function element.setBench(time)
 	selfRenderTime = time
@@ -112,10 +112,10 @@ end
 
 function element:calculateCanvasCoeficient(selfTime)
 	local sW, sH = love.graphics.getDimensions()
-	local areaBelow = (sW * sH) * screenSize
+	local areaBelow = helium.atlas.getFreeArea()
 	local area = self.view.h * self.view.w
 
-	local areaCoef = 1 - (area/areaBelow)
+	local areaCoef = (1-helium.atlas.getRatio()) - (area/areaBelow)
 	local childCoef = self.context:getChildrenCount()/childrenNum
 	local sizeCoef = selfTime/selfRenderTime
 	
@@ -124,11 +124,10 @@ end
 
 local newCanvas, newQuad = love.graphics.newCanvas, love.graphics.newQuad
 function element:createCanvas()
-	self.settings.canvasW = self.view.w*1.25
-	self.settings.canvasH = self.view.h*1.25
+	self.settings.canvasW = self.view.w
+	self.settings.canvasH = self.view.h
 
-	self.canvas = newCanvas(self.view.w*1.25, self.view.h*1.25)
-	self.quad = newQuad(0, 0, self.view.w, self.view.h, self.view.w*1.25, self.view.h*1.25)
+	self.canvas, self.quad = helium.atlas.assign(self)
 end
 
 function element:setParam(p)
@@ -145,7 +144,7 @@ end
 
 function element:updateInputCtx()
 	self.context.inputContext:update()
-	if self.settings.canvasW then
+	--[[if self.settings.canvasW then
 		--If canvas too small make a bigger one
 		if self.settings.canvasW < self.view.w or self.settings.canvasH < self.view.h then
 			self.settings.canvasW = self.view.w*1.25
@@ -161,7 +160,7 @@ function element:updateInputCtx()
 		end
 	
 		self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.settings.canvasW, self.settings.canvasH)
-	end
+	end]]
 end
 
 local dummy = function() end
@@ -202,18 +201,11 @@ function element:internalRender()
 		calcT = love.timer.getTime()
 	end
 
-	local status, err = pcall(self.renderer)
+	self.renderer()
 	if self.settings.testRenderPasses > 0 and selfRenderTime then
 		self.settings.testRenderPasses = self.settings.testRenderPasses-1
 		local selfTime = love.timer.getTime()-calcT
 		table.insert(self.renderBench, self.context:endSelfRender(selfTime))
-	end
-
-	if not status then
-		if helium.conf.HARD_ERROR then
-			error(status)
-		end
-		self:errorRender(status)
 	end
 end
 
@@ -242,9 +234,13 @@ function element:externalRender()
 	if self.settings.needsRendering then
 		if self.settings.hasCanvas then
 			setCanvas(self.canvas)
-			love.graphics.clear(0,0,0,0)
+			--need scissors
+			--love.graphics.clear(0,0,0,0)
 			love.graphics.push('all')
 			love.graphics.origin()
+			local ox, oy = self.quad:getViewport()
+
+			love.graphics.translate(ox, oy)
 
 			self:renderWrapper()
 			self.settings.needsRendering = false

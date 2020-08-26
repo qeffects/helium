@@ -37,6 +37,13 @@ end
 local activeWindow
 local windowStack = {}
 
+function input.unload()
+	windowStack = {}
+	activeWindow = nil
+	windowMachine = {}
+	input.subscriptions = {}
+end
+
 local dummyfunc = function() end
 ---@class subscription
 local subscription   = {}

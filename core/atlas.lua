@@ -1,15 +1,54 @@
 local atlas = {}
-local atlases = {}
+local createdAtlas
 atlas.__index = atlas
-local BLOCK_SIZE = 10
+local BLOCK_SIZE = 5
+
+function atlas.load()
+	if not createdAtlas then
+		atlas.init()
+	end
+end
+
+function atlas.getRatio()
+	return createdAtlas.taken_area/createdAtlas.ideal_area
+end
+
+function atlas.getFreeArea()
+	return createdAtlas.ideal_area - createdAtlas.taken_area
+end
 
 function atlas.init()
 	local w, h = love.graphics.getDimensions()
 
-	
+	createdAtlas = atlas.new(w, h/2)
+	atlas.createdAtlas = createdAtlas
 end
 
-function atlas.onscreenchange(newW,newH)
+function atlas.assign(element)
+	local elW = element.view.w
+	local elH = element.view.h
+	local canvas, quad = createdAtlas:assignElement(element)
+	if not canvas and createdAtlas.ideal_area > createdAtlas.taken_area*1.25 then
+		print('refragmenting ;3')
+		createdAtlas:refragment()
+		local canvas, quad = createdAtlas:assignElement(element)
+	else
+		print('wont refragment')
+	end
+	return canvas, quad
+end
+
+function atlas.unassign(element)
+	createdAtlas:unassignElement(element)
+end
+
+function atlas.unassignAll()
+	createdAtlas.users = {}
+	createdAtlas:unMarkTiles(1, 1, createdAtlas.tileW, createdAtlas.tileH)
+	createdAtlas.taken_area = 0
+end
+
+function atlas.onscreenchange(newW, newH)
 
 end
 
@@ -17,10 +56,11 @@ function atlas.new(w, h)
 	local tiles = {}
 
 	local ymax = math.floor(h/BLOCK_SIZE)
+	local xmax = math.floor(w/BLOCK_SIZE)
 	for y = 1, ymax do
 		tiles[y] = {}
-		tiles[y].empty = ymax
-		for x = 1, math.floor(w/BLOCK_SIZE) do
+		tiles[y].empty = xmax
+		for x = 1, xmax do
 			tiles[y][x] = {
 				taken = false
 			}
@@ -30,7 +70,10 @@ function atlas.new(w, h)
 	local self = {
 		w = w,
 		h = h,
+		tileW = xmax,
+		tileH = ymax,
 		ideal_area = w*h,
+		taken_area = 0,
 		canvas = love.graphics.newCanvas(w, h),
 		users = {},
 		tiles = tiles,
@@ -39,17 +82,98 @@ function atlas.new(w, h)
 	return setmetatable(self, atlas)
 end
 
-function atlas:assignElement(elW, elH, element)
-	local tileSizeY, tileSizeW = math.ceil(elH/BLOCK_SIZE), math.ceil(elW/BLOCK_SIZE)
+function atlas:assignElement(element)
+	local elH, elW = element.view.h, element.view.w
+	local tileSizeY, tileSizeX = math.ceil(elH/BLOCK_SIZE), math.ceil(elW/BLOCK_SIZE)
 
+	local t, y, x = self:find(tileSizeY, tileSizeX)
+
+	if t then
+		local quad
+		--Refragmenting path
+		if self.users[element] then
+			--update by reference owo
+			self.users[element].quad:setViewport((x-1)*BLOCK_SIZE, (y-1)*BLOCK_SIZE, elW, elH)
+			quad = self.users[element].quad
+		else
+			quad = love.graphics.newQuad((x-1)*BLOCK_SIZE, (y-1)*BLOCK_SIZE, elW, elH, self.w, self.h)
+		end
+
+		self.users[element] = {
+			element = element,
+			x = x,
+			y = y,
+			w = tileSizeX,
+			h = tileSizeY,
+			quad = quad
+		}
+
+		self:markTiles(x, y, tileSizeX, tileSizeY)
+
+		self.taken_area = self.taken_area + tileSizeY*BLOCK_SIZE + tileSizeX*BLOCK_SIZE
+
+		return self.canvas, self.users[element].quad
+	else
+		print('failed to allocate :X')
+		return false
+	end
+end
+
+local function sortFunc(el1, el2)
+	return el1.view.h > el2.view.h
+end
+
+function atlas:refragment()
+	self:unMarkTiles(1, 1, self.tileW-1, self.tileH-1)
+	self.taken_area = 0
+
+	local elementArray = {}
+	
+	for i, e in pairs(self.users) do
+		i.settings.needsRendering = true
+		table.insert(elementArray, i)
+	end
+
+	--self.users = {}
+	love.graphics.setCanvas(self.canvas)
+	love.graphics.clear(0,0,0,0)
+	love.graphics.setCanvas()
+	--Should be sorted large to small
+	table.sort(elementArray, sortFunc)
+
+	for index, element in ipairs(elementArray) do
+		self:assignElement(element)
+	end
+end
+
+function atlas:markTiles(x, y, w, h)
+	for y = y, y+h do
+		self.tiles[y].empty = self.tiles[y].empty - w
+		
+		for x = x, x+w do
+			self.tiles[y][x].taken = true
+		end
+	end
+end
+
+function atlas:unMarkTiles(x, y, w, h)
+	for y = y, y+h do
+		self.tiles[y].empty = self.tiles[y].empty + w
+		
+		for x = x, x+w do
+			self.tiles[y][x].taken = false
+		end
+	end
 end
 
 --Work only with rounded values inside here
 function atlas:find(sizeY, sizeX)
-	for y = 1, #self.tiles do
+	local maxX, maxY = #self.tiles[1], #self.tiles
+
+	for y = 1, #self.tiles-sizeY+1 do
 		local skipUntilX=0
 		if self.tiles[y].empty > sizeY then
-			for x = 1, #self.tiles[1] do
+			for x = 1, #self.tiles[1]-sizeX do
 				if not self.tiles[y][x].taken and x>skipUntilX then
 					local result, y, x = self:slice(y, x, sizeY, sizeX)
 
@@ -62,21 +186,25 @@ function atlas:find(sizeY, sizeX)
 			end
 		end
 	end
+
+	return false
 end
 
 function atlas:slice(startY, startX, sizeY, sizeX)
 	for y = startY, startY+sizeY do
-		for x = startX, sizeX do
+		for x = startX, startX+sizeX do
 			if self.tiles[y][x].taken then
 				return false, y, x
 			end
 		end
 	end
-	return true
+	return true, startY, startX
 end
 
 function atlas:unassignElement(element)
-
+	local user = self.users[element]
+	self:unMarkTiles(user.x, user.y, user.w, user.h)
+	self.users[element] = nil
 end
 
 return atlas
