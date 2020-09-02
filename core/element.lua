@@ -14,6 +14,7 @@ setmetatable(element, {
 			local self
 			local func, param, w, h = ...
 			
+			--Make the object inherit class
 			self = setmetatable({}, element)
 			self.parentFunc = func
 
@@ -66,7 +67,33 @@ function element:new(param, immediate, w, h)
 		minH = h or 10,
 	}
 	
+
+	
 	self.view = self.baseView
+
+end
+
+function element:sizeChange()
+	
+end
+
+function element:posChange()
+
+end
+
+function element:onUpdate()
+
+end
+
+function element:onDraw()
+
+end
+
+function element:onLoad()
+
+end
+
+function element:onDestroy()
 
 end
 
@@ -78,6 +105,11 @@ function element:createProxies()
 		__newindex = function(t, index, val)
 			if self.baseView[index] ~= val then
 				self.baseView[index] = val
+				if index=='w' or index=='h' then
+					self:sizeChange()
+				else
+					self:posChange()
+				end
 				self.context:bubbleUpdate()
 				self:updateInputCtx()
 			end
@@ -104,7 +136,7 @@ end
 local childrenNum = 5
 local selfRenderTime = false
 local screenSize = 1/4
-local coefficient = 1.50
+local coefficient = 1.5
 
 function element.setBench(time)
 	selfRenderTime = time
@@ -115,7 +147,7 @@ function element:calculateCanvasCoeficient(selfTime)
 	local areaBelow = helium.atlas.getFreeArea()
 	local area = self.view.h * self.view.w
 
-	local areaCoef = (1-helium.atlas.getRatio()) - (area/areaBelow)
+	local areaCoef = (2-(helium.atlas.getRatio())) - (area/(areaBelow/(4+3*helium.atlas.getRatio())))
 	local childCoef = self.context:getChildrenCount()/childrenNum
 	local sizeCoef = selfTime/selfRenderTime
 	
@@ -128,6 +160,12 @@ function element:createCanvas()
 	self.settings.canvasH = self.view.h
 
 	self.canvas, self.quad = helium.atlas.assign(self)
+
+	if not self.canvas then
+		self.settings.failedCanvas = true
+		return
+	end
+	self.settings.hasCanvas = true
 end
 
 function element:setParam(p)
@@ -278,7 +316,6 @@ function element:externalUpdate()
 			love.graphics.origin()
 			self:createCanvas()
 			love.graphics.pop()
-			self.settings.hasCanvas = true
 			self.settings.pendingUpdate = true
 		else
 			self.settings.failedCanvas = true
@@ -307,17 +344,19 @@ function element:draw(x, y, w, h)
 		if h then self.view.h = self.view.minH<=h and h or self.view.minH end
 	end
 
-	if self.settings.firstDraw then
-		self.settings.remove = false
-		self.settings.firstDraw = false
-	end
-
 	if context.getContext() then
-		self:externalUpdate()
-		self:externalRender()
+		if context.getContext().childRender(self) then
+			self:externalUpdate()
+			self:externalRender()
+		end
 	elseif not self.settings.inserted then
 		self.settings.inserted = true
 		insert(helium.elementBuffer, self)
+	end
+
+	if self.settings.firstDraw then
+		self.settings.remove = false
+		self.settings.firstDraw = false
 	end
 end
 

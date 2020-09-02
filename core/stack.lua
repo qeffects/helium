@@ -16,7 +16,9 @@ function context.new(elem)
         element = elem,
         childrenContexts = {},
 		inputContext = helium.input.newContext(elem),
-		childRenderTime = 0
+		childRenderTime = 0,
+		deferChildren = false,
+		capturedChilds = {},
     }, context)
 
     return ctx
@@ -105,11 +107,29 @@ function context:getChildrenCount()
 	return #self.childrenContexts
 end
 
+function context:startDeferingChildren()
+	self.deferChildren = true
+	self.capturedChilds = {}
+end
+
+function context:childRender(el)
+	if self.deferChildren then
+		self.capturedChilds[#self.capturedChilds+1] = el
+		
+		return false
+	else
+		return true
+	end
+end
+
+function context:stopDeferingChildren()
+	self.deferChildren = false
+	return self.capturedChilds
+end
+
 --Function meant for external context capture
 function context.getContext()
     return activeContext
 end
-
-
 
 return context

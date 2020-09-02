@@ -43,10 +43,12 @@ function helium.draw()
 		--love.graphics.setScissor(500, 500, 1, 1)
 
 		local startTime = love.timer.getTime()
+		
 		for i = 1, 20 do
 			love.graphics.print(i,-100,-100)
 		end
-		helium.element.setBench((love.timer.getTime()-startTime)/9)
+
+		helium.element.setBench((love.timer.getTime()-startTime)/5)
 
 		first = false
 		--love.graphics.setScissor()

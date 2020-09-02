@@ -20,7 +20,7 @@ end
 function atlas.init()
 	local w, h = love.graphics.getDimensions()
 
-	createdAtlas = atlas.new(w, h/2)
+	createdAtlas = atlas.new(w*2, h)
 	atlas.createdAtlas = createdAtlas
 end
 
@@ -28,12 +28,15 @@ function atlas.assign(element)
 	local elW = element.view.w
 	local elH = element.view.h
 	local canvas, quad = createdAtlas:assignElement(element)
-	if not canvas and createdAtlas.ideal_area > createdAtlas.taken_area*1.25 then
+	if not canvas and createdAtlas.ideal_area < createdAtlas.taken_area*4 then
 		print('refragmenting ;3')
 		createdAtlas:refragment()
-		local canvas, quad = createdAtlas:assignElement(element)
+		canvas, quad = createdAtlas:assignElement(element)
+		if not canvas then
+			print('ran out of space')
+		end
 	else
-		print('wont refragment')
+		print('wont refragment', createdAtlas.ideal_area, createdAtlas.taken_area)
 	end
 	return canvas, quad
 end
@@ -109,8 +112,7 @@ function atlas:assignElement(element)
 		}
 
 		self:markTiles(x, y, tileSizeX, tileSizeY)
-
-		self.taken_area = self.taken_area + tileSizeY*BLOCK_SIZE + tileSizeX*BLOCK_SIZE
+		self.taken_area = self.taken_area + ((tileSizeY*BLOCK_SIZE)*(tileSizeX*BLOCK_SIZE))
 
 		return self.canvas, self.users[element].quad
 	else
@@ -170,7 +172,7 @@ end
 function atlas:find(sizeY, sizeX)
 	local maxX, maxY = #self.tiles[1], #self.tiles
 
-	for y = 1, #self.tiles-sizeY+1 do
+	for y = 1, #self.tiles-(sizeY+1) do
 		local skipUntilX=0
 		if self.tiles[y].empty > sizeY then
 			for x = 1, #self.tiles[1]-sizeX do
