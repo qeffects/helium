@@ -10,8 +10,10 @@ helium.utils   = require(path..".utils")
 helium.element = require(path..".core.element")
 helium.input   = require(path..".core.input")
 helium.loader  = require(path..".loader")
+helium.stack   = require(path..".core.stack")
 helium.atlas   = require(path..".core.atlas")
 helium.elementBuffer = {}
+helium.elementInsertionQueue = {}
 helium.__index = helium
 
 setmetatable(helium, {__call = function(s, chunk)
@@ -61,15 +63,17 @@ function helium.draw()
 	for i, e in ipairs(helium.elementBuffer) do
 		e:externalRender()
 	end
+
+	for i, e in ipairs(helium.elementInsertionQueue) do
+		table.insert(helium.elementBuffer, e)
+	end
+	helium.elementInsertionQueue = {}
 end
 
 function helium.update(dt)
-	if helium.conf.HOTSWAP then
-		helium.loader.update(dt)
-	end
 
-	for i = #helium.elementBuffer, 1, -1 do
-		if helium.elementBuffer[i]:externalUpdate() then
+	for i = 1, #helium.elementBuffer do
+		if helium.elementBuffer[i]:externalUpdate(i) then
 			table.remove(helium.elementBuffer,i)
 		end
 	end
@@ -110,6 +114,7 @@ if helium.conf.AUTO_RUN then
 		-- Main loop time.
 		return function()
 			-- Process events.
+			helium.stack.newFrame()
 			if love.event then
 				love.event.pump()
 				for name, a,b,c,d,e,f in love.event.poll() do
@@ -138,12 +143,13 @@ if helium.conf.AUTO_RUN then
 			if love.graphics and love.graphics.isActive() then
 				love.graphics.origin()
 				love.graphics.clear(love.graphics.getBackgroundColor())
-
-				if love.draw then love.draw() end
-
+				
 				st = love.timer.getTime()
 				helium.draw()
 				heliumTime=heliumTime+love.timer.getTime()-st
+
+				if love.draw then love.draw() end
+
 
 				love.graphics.present()
 			end

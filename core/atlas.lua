@@ -29,14 +29,14 @@ function atlas.assign(element)
 	local elH = element.view.h
 	local canvas, quad = createdAtlas:assignElement(element)
 	if not canvas and createdAtlas.ideal_area < createdAtlas.taken_area*4 then
-		print('refragmenting ;3')
+		--print('refragmenting ;3')
 		createdAtlas:refragment()
 		canvas, quad = createdAtlas:assignElement(element)
 		if not canvas then
-			print('ran out of space')
+			--print('ran out of space')
 		end
 	else
-		print('wont refragment', createdAtlas.ideal_area, createdAtlas.taken_area)
+		--print('wont refragment', createdAtlas.ideal_area, createdAtlas.taken_area)
 	end
 	return canvas, quad
 end
@@ -206,6 +206,7 @@ end
 function atlas:unassignElement(element)
 	local user = self.users[element]
 	self:unMarkTiles(user.x, user.y, user.w, user.h)
+	self.taken_area = self.taken_area - ((user.w*BLOCK_SIZE)*(user.h*BLOCK_SIZE))
 	self.users[element] = nil
 end
 

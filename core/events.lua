@@ -9,45 +9,31 @@ function eventClass.new()
 	return setmetatable(self, eventClass)
 end
 
-function eventClass:sub(name, func)
-	local sub = { func = func }
-
-	self:provideQueue(name)
-	self.eventSubs[name][func] = func
-
-	return sub
+function eventClass:newQueue(name)
+	self.eventSubs[name] = {}
 end
 
-function eventClass:push(name, event)
-	if self.eventSubs[name] then
-		table.insert(self.eventSubs[name].queue, event)
-	end
+--Data is the individualized table to pass to each subscriber (or middleware)
+function eventClass:sub(name, func, data)
+	self.eventSubs[name][func] = {func = func, data = data}
+	
+	return func
 end
 
-function eventClass:flush(name)
-
+function eventClass:unsub(name, func)
+	self.eventSubs[name][func] = nil
 end
 
-function eventClass:flushAll()
-	for i, subs in pairs(self.eventSubs) do
-		local assembledEvent = {}
-		
-		for i, e in ipairs(subs.queue) do
-
+function eventClass:push(name, evntData)
+	local pushData = evntData
+	for i, e in pairs(self.eventSubs[name]) do
+		if self.eventSubs[name].beforeEach then
+			pushData = self.eventSubs[name].beforeEach(e.data, evntData) or evntData
 		end
+
+		e.func(pushData)
 	end
 end
 
-function eventClass:provideQueue(name)
-	if not self.eventSubs[name] then
-		self.eventSubs[name] = {
-			queue = {}
-		}
-	end
-end
-
-function eventClass:unsub(name, event)
-	self.eventSubs[name][event] = nil
-end
 
 return eventClass

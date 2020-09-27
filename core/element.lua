@@ -19,7 +19,7 @@ setmetatable(element, {
 			self.parentFunc = func
 
 			self:new(param,nil, w, h)
-			self:createProxies(param)
+			self:createProxies()
 
 			return self
 		end
@@ -29,7 +29,6 @@ setmetatable(element, {
 --The new function that should be used for element creation
 function element:new(param, immediate, w, h)
 	self.parameters = {}
-
 	self.baseParams = param
 
 	--Internal settings
@@ -57,28 +56,48 @@ function element:new(param, immediate, w, h)
 	self.renderBench = {
 
 	}
-
 	self.baseView = {
 		x = 0,
 		y = 0,
 		w = w or 10,
 		h = h or 10,
-		minW = w or 10,
-		minH = h or 10,
+		minW = w or 0,
+		minH = h or 0,
 	}
-	
 
-	
+	self.size = setmetatable({}, {__index = function(t, index)
+		return self.baseView[index]
+	end,})
+
 	self.view = self.baseView
-
 end
 
-function element:sizeChange()
+function element:sizeChange(i, v)
+	local increase = self.baseView[i] < v
+
+	if i == 'w' then
+		self.baseView.w = math.max(self.baseView.minW, v)
+	else
+		self.baseView.h = math.max(self.baseView.minH, v)
+	end
 	
+	--defer resize
+	if self.deferResize then
+		if not self.deferResize.increased then
+			self.deferResize.increased = increase
+		end
+	else
+		self.deferResize = { increased = increase }
+	end
 end
 
-function element:posChange()
+function element:posChange(i, v)
+	self.baseView[i] = v
+		--defer resize
 
+	if not self.deferRepos then
+		self.deferRepos = true
+	end
 end
 
 function element:onUpdate()
@@ -104,14 +123,12 @@ function element:createProxies()
 		end,
 		__newindex = function(t, index, val)
 			if self.baseView[index] ~= val then
-				self.baseView[index] = val
 				if index=='w' or index=='h' then
-					self:sizeChange()
+					self:sizeChange(index, val)
 				else
-					self:posChange()
+					self:posChange(index, val)
 				end
 				self.context:bubbleUpdate()
-				self:updateInputCtx()
 			end
 		end
 	})
@@ -142,14 +159,22 @@ function element.setBench(time)
 	selfRenderTime = time
 end
 
-function element:calculateCanvasCoeficient(selfTime)
+function element:calculateCanvasCoeficient()		
+	local avg, sum = 0, 0
+
+	for i, e in ipairs(self.renderBench) do
+		sum = sum + e
+	end
+
+	avg = sum/#self.renderBench
+	
 	local sW, sH = love.graphics.getDimensions()
 	local areaBelow = helium.atlas.getFreeArea()
-	local area = self.view.h * self.view.w
+	local area = self.view.h*self.view.w
 
-	local areaCoef = (2-(helium.atlas.getRatio())) - (area/(areaBelow/(4+3*helium.atlas.getRatio())))
+	local areaCoef = (2-(helium.atlas.getRatio()) )-(area/(areaBelow/(4+3*helium.atlas.getRatio())))
 	local childCoef = self.context:getChildrenCount()/childrenNum
-	local sizeCoef = selfTime/selfRenderTime
+	local sizeCoef = avg/selfRenderTime
 	
 	return (areaCoef+childCoef+sizeCoef)>coefficient
 end
@@ -163,6 +188,7 @@ function element:createCanvas()
 
 	if not self.canvas then
 		self.settings.failedCanvas = true
+		self.settings.hasCanvas = false
 		return
 	end
 	self.settings.hasCanvas = true
@@ -180,27 +206,6 @@ function element:setCalculatedSize(w, h)
 	self.view.h = math.max(self.view.minH, self.view.h)
 end
 
-function element:updateInputCtx()
-	self.context.inputContext:update()
-	--[[if self.settings.canvasW then
-		--If canvas too small make a bigger one
-		if self.settings.canvasW < self.view.w or self.settings.canvasH < self.view.h then
-			self.settings.canvasW = self.view.w*1.25
-			self.settings.canvasH = self.view.h*1.25
-
-			self.canvas = love.graphics.newCanvas(self.view.w*1.25, self.view.h*1.25)
-		--If canvas too big make a smaller one
-		elseif self.settings.canvasW > self.view.w*1.50 or self.settings.canvasH > self.view.h*1.50 then
-			self.settings.canvasW = self.view.w*1.25
-			self.settings.canvasH = self.view.h*1.25
-			
-			self.canvas = love.graphics.newCanvas(self.view.w*1.25, self.view.h*1.25)
-		end
-	
-		self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.settings.canvasW, self.settings.canvasH)
-	end]]
-end
-
 local dummy = function() end
 --Immediate mode code(don't call directly)
 function element.immediate(param, func, x, y, w, h)
@@ -209,7 +214,7 @@ function element.immediate(param, func, x, y, w, h)
 	local ctx = context.getContext()
 	if ctx then
 		local self = setmetatable({}, element)
-		self = element:new(param, true)
+		self = self:new(param, true)
 	else
 		error("Can't render immediate outside of persistent")
 	end
@@ -218,7 +223,7 @@ end
 --Called once dimensions are validated
 function element:setup()
 	self.context:set()
-	self.renderer = self.parentFunc(self.parameters, self.view.w, self.view.h)
+	self.renderer = self.parentFunc(self.parameters, self.size)
 	self.context:unset()
 
 	self.settings.isSetup = true
@@ -302,20 +307,12 @@ function element:externalRender()
 end
 
 function element:externalUpdate()
+	self.context:zIndex()
 	if not self.settings.failedCanvas and self.settings.testRenderPasses == 0 and not self.settings.hasCanvas then
-		local avg, sum = 0, 0
 
-		for i, e in ipairs(self.renderBench) do
-			sum = sum + e
-		end
-
-		avg = sum/#self.renderBench
-
-		if self:calculateCanvasCoeficient(avg) then
-			love.graphics.push()
-			love.graphics.origin()
+		if self:calculateCanvasCoeficient() then
 			self:createCanvas()
-			love.graphics.pop()
+
 			self.settings.pendingUpdate = true
 		else
 			self.settings.failedCanvas = true
@@ -325,6 +322,27 @@ function element:externalUpdate()
 	if self.settings.pendingUpdate then
 		self.settings.needsRendering = true
 		self.settings.pendingUpdate  = false
+	end
+
+	if self.deferResize then
+		self.context:sizeChanged()
+		if self.settings.hasCanvas then 
+			helium.atlas.unassign(self)
+
+			if self:calculateCanvasCoeficient() then
+				self:createCanvas()
+			else
+				self.settings.hasCanvas = false
+				self.canvas = nil
+				self.quad = nil
+				self.deferResize = nil
+			end
+		end
+	end
+
+	if self.deferRepos then
+		self.context:posChanged()
+		self.deferRepos = false
 	end
 
 	return self.settings.remove
@@ -337,27 +355,30 @@ local insert = table.insert
 ---@param x number
 ---@param y number
 function element:draw(x, y, w, h)
-	if not self.view.lock then
-		if x then self.view.x = x end
-		if y then self.view.y = y end
-		if w then self.view.w = self.view.minW<=w and w or self.view.minW end
-		if h then self.view.h = self.view.minH<=h and h or self.view.minH end
-	end
+	if x then self.view.x = x end
+	if y then self.view.y = y end
+	if w then self.view.w = w end
+	if h then self.view.h = h end
 
-	if context.getContext() then
-		if context.getContext().childRender(self) then
+	local cx = context.getContext()
+	if cx then
+		if cx:childRender(self) then
 			self:externalUpdate()
 			self:externalRender()
 		end
 	elseif not self.settings.inserted then
 		self.settings.inserted = true
-		insert(helium.elementBuffer, self)
+		insert(helium.elementInsertionQueue, self)
 	end
 
 	if self.settings.firstDraw then
 		self.settings.remove = false
 		self.settings.firstDraw = false
 	end
+end
+
+function element:getSize()
+	return self.view.w, self.view.h
 end
 
 function element:destroy()
