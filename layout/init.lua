@@ -3,6 +3,7 @@ local path   = string.sub(..., 1, string.len(...) - string.len(".layout"))
 local layout = {}
 local layouts = {}
 layouts.column = require(path..'.layout.column')
+layouts.row = require(path..'.layout.row')
 layout.__index = layout
 local element = require(path..'.core.element')
 local stack = require(path..'.core.stack')

@@ -150,7 +150,6 @@ function element:createProxies()
 end
 
 --Random coefficients, if these reach 1.5 then canvas is made
-local childrenNum = 5
 local selfRenderTime = false
 local screenSize = 1/4
 local coefficient = 1.5
@@ -173,10 +172,11 @@ function element:calculateCanvasCoeficient()
 	local area = self.view.h*self.view.w
 
 	local areaCoef = (2-(helium.atlas.getRatio()) )-(area/(areaBelow/(4+3*helium.atlas.getRatio())))
-	local childCoef = self.context:getChildrenCount()/childrenNum
-	local sizeCoef = avg/selfRenderTime
-	
-	return (areaCoef+childCoef+sizeCoef)>coefficient
+	local speedCoef = avg/selfRenderTime
+
+
+
+	return (areaCoef+speedCoef)>coefficient
 end
 
 local newCanvas, newQuad = love.graphics.newCanvas, love.graphics.newQuad
@@ -184,7 +184,7 @@ function element:createCanvas()
 	self.settings.canvasW = self.view.w
 	self.settings.canvasH = self.view.h
 
-	self.canvas, self.quad = helium.atlas.assign(self)
+	self.canvas, self.quad, self.interQuad = helium.atlas.assign(self)
 
 	if not self.canvas then
 		self.settings.failedCanvas = true
@@ -248,7 +248,7 @@ function element:internalRender()
 	if self.settings.testRenderPasses > 0 and selfRenderTime then
 		self.settings.testRenderPasses = self.settings.testRenderPasses-1
 		local selfTime = love.timer.getTime()-calcT
-		table.insert(self.renderBench, self.context:endSelfRender(selfTime))
+		table.insert(self.renderBench, selfTime)
 	end
 end
 
@@ -297,10 +297,19 @@ function element:externalRender()
 	setCanvas(cnvs)
 
 	if self.settings.hasCanvas then
-		setColor(1,1,1,1)
-		draw(self.canvas, self.quad, 0, 0)
-		setColor(0,1,0,0.5)
-		love.graphics.rectangle('line', 1, 1, self.view.w-1, self.view.h-1)
+		if self.canvas == cnvs then
+			love.graphics.push('all')
+			love.graphics.origin()
+			setColor(1,1,1,1)
+			setCanvas(helium.atlas.interCanvas)
+			draw(self.canvas, self.quad, 0, 0)
+			love.graphics.pop()
+			setCanvas(cnvs)
+			draw(helium.atlas.interCanvas, self.interQuad, 0, 0)
+		else
+			setColor(1,1,1,1)
+			draw(self.canvas, self.quad, 0, 0)
+		end
 	end
 
 	love.graphics.pop()
@@ -328,15 +337,12 @@ function element:externalUpdate()
 		self.context:sizeChanged()
 		if self.settings.hasCanvas then 
 			helium.atlas.unassign(self)
-
-			if self:calculateCanvasCoeficient() then
-				self:createCanvas()
-			else
-				self.settings.hasCanvas = false
-				self.canvas = nil
-				self.quad = nil
-				self.deferResize = nil
-			end
+			self.settings.hasCanvas = false
+			self.settings.testRenderPasses = 15
+			self.canvas = nil
+			self.quad = nil
+			self.interQuad = nil
+			self.deferResize = nil
 		end
 	end
 
@@ -374,6 +380,9 @@ function element:draw(x, y, w, h)
 	if self.settings.firstDraw then
 		self.settings.remove = false
 		self.settings.firstDraw = false
+		if cx then
+			self.settings.testRenderPasses = self.settings.testRenderPasses-5
+		end
 	end
 end
 

@@ -10,6 +10,7 @@ return function (base)
 				return fakeBase[index] or base[index]
 			end,
 			__newindex = function(t, index, val)
+				print(index, val)
 				if fakeBase[index] ~= val then
 					fakeBase[index] = val
 					activeContext:bubbleUpdate()

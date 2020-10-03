@@ -1,5 +1,6 @@
 local atlas = {}
 local createdAtlas
+local intermediaryCanvas
 atlas.__index = atlas
 local BLOCK_SIZE = 5
 
@@ -17,28 +18,30 @@ function atlas.getFreeArea()
 	return createdAtlas.ideal_area - createdAtlas.taken_area
 end
 
+local sw, sh = love.graphics.getDimensions()
 function atlas.init()
-	local w, h = love.graphics.getDimensions()
 
-	createdAtlas = atlas.new(w*2, h)
+	createdAtlas = atlas.new(sw*2, sh)
+	intermediaryCanvas = love.graphics.newCanvas(sw, sh)
 	atlas.createdAtlas = createdAtlas
+	atlas.interCanvas = intermediaryCanvas
 end
 
 function atlas.assign(element)
 	local elW = element.view.w
 	local elH = element.view.h
-	local canvas, quad = createdAtlas:assignElement(element)
+	local canvas, quad, interQuad = createdAtlas:assignElement(element)
 	if not canvas and createdAtlas.ideal_area < createdAtlas.taken_area*4 then
 		--print('refragmenting ;3')
 		createdAtlas:refragment()
-		canvas, quad = createdAtlas:assignElement(element)
+		canvas, quad, interQuad = createdAtlas:assignElement(element)
 		if not canvas then
 			--print('ran out of space')
 		end
 	else
 		--print('wont refragment', createdAtlas.ideal_area, createdAtlas.taken_area)
 	end
-	return canvas, quad
+	return canvas, quad, interQuad
 end
 
 function atlas.unassign(element)
@@ -92,14 +95,17 @@ function atlas:assignElement(element)
 	local t, y, x = self:find(tileSizeY, tileSizeX)
 
 	if t then
-		local quad
+		local quad, iquad
 		--Refragmenting path
 		if self.users[element] then
 			--update by reference owo
 			self.users[element].quad:setViewport((x-1)*BLOCK_SIZE, (y-1)*BLOCK_SIZE, elW, elH)
+			self.users[element].interQuad:setViewport(0, 0, elW, elH)
 			quad = self.users[element].quad
+			iquad = self.users[element].interQuad
 		else
 			quad = love.graphics.newQuad((x-1)*BLOCK_SIZE, (y-1)*BLOCK_SIZE, elW, elH, self.w, self.h)
+			iquad = love.graphics.newQuad(0, 0, elW, elH, sw, sh)
 		end
 
 		self.users[element] = {
@@ -108,13 +114,14 @@ function atlas:assignElement(element)
 			y = y,
 			w = tileSizeX,
 			h = tileSizeY,
-			quad = quad
+			quad = quad,
+			interQuad = iquad
 		}
 
 		self:markTiles(x, y, tileSizeX, tileSizeY)
 		self.taken_area = self.taken_area + ((tileSizeY*BLOCK_SIZE)*(tileSizeX*BLOCK_SIZE))
 
-		return self.canvas, self.users[element].quad
+		return self.canvas, self.users[element].quad, iquad
 	else
 		print('failed to allocate :X')
 		return false

@@ -43,7 +43,7 @@ function context:set()
     if activeContext then
         if not self.parentCtx and activeContext~=self then
             self.parentCtx = activeContext
-            activeContext.childrenContexts[#activeContext.childrenContexts] = self
+            activeContext.childrenContexts[#activeContext.childrenContexts+1] = self
         end
 
         self.absX      = self.parentCtx.absX + self.view.x
@@ -185,7 +185,7 @@ function context:posChanged()
 		self.absX      = self.view.x
 		self.absY      = self.view.y
 	end
-	
+
 	self.events:push('poschange')
 end
 

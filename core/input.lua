@@ -9,11 +9,7 @@ local input = {
 input.__index = input
 
 local function sortFunc(t1, t2)
-	if t1.stack.temporalZ.z == t2.stack.temporalZ.z then
-		print('same Z ???',t1.stack.temporalZ.z, t2.stack.temporalZ.z)
-	end
 	if t1 == t2 then
-		print(tostring(t1), tostring(t2))
 		return false
 	end
 	return t1.stack.temporalZ.z > t2.stack.temporalZ.z
@@ -22,7 +18,6 @@ end
 function input.sortZ()
 	for i, subs in pairs(input.subscriptions) do
 		table.sort(subs, sortFunc)
-		print(#subs)
 	end
 end
 
@@ -88,7 +83,6 @@ function subscription.create(x, y, w, h, eventType, callback, doff)
 	
 	sub.onPosChange = stack:onPosChange(function()
 		sub.x, sub.y = sub.stack:normalizePos(sub.origX, sub.origY)
-		print(sub.y, sub.stack.absY)
 	end)
 
 	if doff == false then
