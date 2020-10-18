@@ -27,7 +27,7 @@ setmetatable(helium, {__call = function(s, chunk)
 	end,})
 end})
 
-local first = true
+local skipframes = 10
 local skip = true
 
 function helium.load()
@@ -41,9 +41,7 @@ end
 
 
 function helium.draw()
-	if first and not skip then
-		--love.graphics.setScissor(500, 500, 1, 1)
-
+	if skipframes == 0 then
 		local startTime = love.timer.getTime()
 		
 		for i = 1, 20 do
@@ -52,11 +50,8 @@ function helium.draw()
 
 		helium.element.setBench((love.timer.getTime()-startTime)/5)
 		helium.atlas.setBench((love.timer.getTime()-startTime)/5)
-
-		first = false
-		--love.graphics.setScissor()
-	elseif first then
-		skip = false
+	elseif skipframes>0 then
+		skipframes = skipframes - 1
 	end
 
 	--We don't want any side effects affecting internal rendering

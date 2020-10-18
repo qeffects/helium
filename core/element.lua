@@ -178,8 +178,8 @@ end
 function element:setCalculatedSize(w, h)
 	self.view.minW = w or self.view.minW
 	self.view.minH = h or self.view.minH
-	self.view.w = math.max(self.view.minW, self.view.w)
-	self.view.h = math.max(self.view.minH, self.view.h)
+	self.view.w = w or self.view.minW
+	self.view.h = h or self.view.minH
 end
 
 local dummy = function() end
@@ -233,7 +233,7 @@ function element:renderWrapper()
 
 	self.context:unset()
 end
-
+local lg = love.graphics
 function element:externalRender()
 	local cnvs = getCanvas()
 	love.graphics.push('all')
@@ -247,33 +247,36 @@ function element:externalRender()
 		if self.settings.hasCanvas then
 			setCanvas(self.canvas)
 			--need scissors
-			love.graphics.push('all')
-			love.graphics.origin()
 			local ox, oy, w, h = self.quad:getViewport()
-
-			love.graphics.translate(ox, oy)
-
-			love.graphics.setScissor(ox, oy, w, h)
-			love.graphics.clear(0,0,0,0)
+			lg.push('all')
+			lg.origin()
+			lg.translate(ox, oy)
+			lg.setScissor(ox, oy, w, h)
+			lg.clear(0,0,0,0)
+			
 			self:renderWrapper()
+			
 			self.settings.needsRendering = false
-			love.graphics.pop()
+			lg.pop()
 		else
-			love.graphics.translate(self.view.x, self.view.y)
-			local x, y = love.graphics.transformPoint(0, 0)
-			love.graphics.setScissor(x, y, self.view.w, self.view.h)
+			lg.translate(self.view.x, self.view.y)
+			local x, y = lg.transformPoint(0, 0)
+			lg.intersectScissor(x, y, self.view.w, self.view.h)
+			
 			self:renderWrapper()
 		end
 	end
+	--lg.setScissor()
 
 	setCanvas(cnvs)
 
 	if self.settings.hasCanvas then
-		love.graphics.translate(self.view.x, self.view.y)
+		lg.translate(self.view.x, self.view.y)
 		setColor(1, 1, 1, 1)
 		draw(self.canvas, self.quad, 0, 0)
 	end
 
+	lg.setScissor()
 	love.graphics.pop()
 end
 
