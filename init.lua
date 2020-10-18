@@ -51,6 +51,7 @@ function helium.draw()
 		end
 
 		helium.element.setBench((love.timer.getTime()-startTime)/5)
+		helium.atlas.setBench((love.timer.getTime()-startTime)/5)
 
 		first = false
 		--love.graphics.setScissor()

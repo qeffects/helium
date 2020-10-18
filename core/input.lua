@@ -93,7 +93,7 @@ function subscription.create(x, y, w, h, eventType, callback, doff)
 		input.subscriptions[eventType] = {}
 	end
 
-	table.insert(input.subscriptions[eventType],1,sub)
+	table.insert(input.subscriptions[eventType], 1, sub)
 
 	input.sortZ()
 

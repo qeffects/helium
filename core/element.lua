@@ -149,48 +149,24 @@ function element:createProxies()
 	self.context = context.new(self)
 end
 
---Random coefficients, if these reach 1.5 then canvas is made
-local selfRenderTime = false
-local screenSize = 1/4
-local coefficient = 1.5
-
+local selfRenderTime
 function element.setBench(time)
 	selfRenderTime = time
 end
 
-function element:calculateCanvasCoeficient()		
-	local avg, sum = 0, 0
-
-	for i, e in ipairs(self.renderBench) do
-		sum = sum + e
-	end
-
-	avg = sum/#self.renderBench
-	
-	local sW, sH = love.graphics.getDimensions()
-	local areaBelow = helium.atlas.getFreeArea()
-	local area = self.view.h*self.view.w
-
-	local areaCoef = (2-(helium.atlas.getRatio()) )-(area/(areaBelow/(4+3*helium.atlas.getRatio())))
-	local speedCoef = avg/selfRenderTime
-
-
-
-	return (areaCoef+speedCoef)>coefficient
-end
-
 local newCanvas, newQuad = love.graphics.newCanvas, love.graphics.newQuad
 function element:createCanvas()
-	self.settings.canvasW = self.view.w
-	self.settings.canvasH = self.view.h
 
-	self.canvas, self.quad, self.interQuad = helium.atlas.assign(self)
+	self.canvas, self.quad = helium.atlas.assign(self)
 
 	if not self.canvas then
 		self.settings.failedCanvas = true
 		self.settings.hasCanvas = false
 		return
 	end
+
+	self.settings.canvasW = self.view.w
+	self.settings.canvasH = self.view.h
 	self.settings.hasCanvas = true
 end
 
@@ -230,13 +206,6 @@ function element:setup()
 end
 
 local setColor, rectangle, setFont, printf = love.graphics.setColor, love.graphics.rectangle, love.graphics.setFont, love.graphics.printf
-function element:errorRender(msg)
-	setColor(1, 0, 0)
-	rectangle('line', 0, 0, self.view.w, self.view.h)
-	setColor(1, 1, 1)
-	printf("Error: "..msg, 0, 0, self.view.w)
-end
-
 local calcT
 
 function element:internalRender()
@@ -245,6 +214,7 @@ function element:internalRender()
 	end
 
 	self.renderer()
+
 	if self.settings.testRenderPasses > 0 and selfRenderTime then
 		self.settings.testRenderPasses = self.settings.testRenderPasses-1
 		local selfTime = love.timer.getTime()-calcT
@@ -267,7 +237,6 @@ end
 function element:externalRender()
 	local cnvs = getCanvas()
 	love.graphics.push('all')
-	love.graphics.translate(self.view.x, self.view.y)
 
 	if not self.settings.isSetup then
 		self:setup()
@@ -278,18 +247,21 @@ function element:externalRender()
 		if self.settings.hasCanvas then
 			setCanvas(self.canvas)
 			--need scissors
-			--love.graphics.clear(0,0,0,0)
 			love.graphics.push('all')
 			love.graphics.origin()
-			local ox, oy = self.quad:getViewport()
+			local ox, oy, w, h = self.quad:getViewport()
 
 			love.graphics.translate(ox, oy)
 
+			love.graphics.setScissor(ox, oy, w, h)
+			love.graphics.clear(0,0,0,0)
 			self:renderWrapper()
 			self.settings.needsRendering = false
-
 			love.graphics.pop()
 		else
+			love.graphics.translate(self.view.x, self.view.y)
+			local x, y = love.graphics.transformPoint(0, 0)
+			love.graphics.setScissor(x, y, self.view.w, self.view.h)
 			self:renderWrapper()
 		end
 	end
@@ -297,19 +269,9 @@ function element:externalRender()
 	setCanvas(cnvs)
 
 	if self.settings.hasCanvas then
-		if self.canvas == cnvs then
-			love.graphics.push('all')
-			love.graphics.origin()
-			setColor(1,1,1,1)
-			setCanvas(helium.atlas.interCanvas)
-			draw(self.canvas, self.quad, 0, 0)
-			love.graphics.pop()
-			setCanvas(cnvs)
-			draw(helium.atlas.interCanvas, self.interQuad, 0, 0)
-		else
-			setColor(1,1,1,1)
-			draw(self.canvas, self.quad, 0, 0)
-		end
+		love.graphics.translate(self.view.x, self.view.y)
+		setColor(1, 1, 1, 1)
+		draw(self.canvas, self.quad, 0, 0)
 	end
 
 	love.graphics.pop()
@@ -318,14 +280,9 @@ end
 function element:externalUpdate()
 	self.context:zIndex()
 	if not self.settings.failedCanvas and self.settings.testRenderPasses == 0 and not self.settings.hasCanvas then
+		self:createCanvas()
 
-		if self:calculateCanvasCoeficient() then
-			self:createCanvas()
-
-			self.settings.pendingUpdate = true
-		else
-			self.settings.failedCanvas = true
-		end
+		self.settings.pendingUpdate = true
 	end
 
 	if self.settings.pendingUpdate then
@@ -381,7 +338,7 @@ function element:draw(x, y, w, h)
 		self.settings.remove = false
 		self.settings.firstDraw = false
 		if cx then
-			self.settings.testRenderPasses = self.settings.testRenderPasses-5
+			self.settings.testRenderPasses = self.settings.testRenderPasses+5
 		end
 	end
 end

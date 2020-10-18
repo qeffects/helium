@@ -99,6 +99,21 @@ function context:destroy()
     end
 end
 
+function context:getCanvasIndex(forCanvas)
+	if self.parentCtx then
+		if self.element.settings.hasCanvas then
+			return self.parentCtx:getCanvasIndex() == 1 and 2 or 1
+		else
+			if forCanvas then
+				return self.parentCtx:getCanvasIndex() == 1 and 2 or 1
+			end
+		end
+	else
+		--No parent path (element becomes the first one cached)
+		return self.element.settings.hasCanvas and 1 or nil
+	end
+end
+
 function context:getChildrenCount()
 	return #self.childrenContexts
 end

@@ -1,40 +1,63 @@
 local atlas = {}
-local createdAtlas
-local intermediaryCanvas
+local atlases
 atlas.__index = atlas
 local BLOCK_SIZE = 5
 
 function atlas.load()
-	if not createdAtlas then
+	if not atlases then
 		atlas.init()
 	end
 end
 
-function atlas.getRatio()
-	return createdAtlas.taken_area/createdAtlas.ideal_area
+function atlas.getRatio(index)
+	return atlases[index].taken_area/atlases[index].ideal_area
 end
 
-function atlas.getFreeArea()
-	return createdAtlas.ideal_area - createdAtlas.taken_area
+function atlas.getFreeArea(index)
+	return atlases[index].ideal_area - atlases[index].taken_area
 end
 
 local sw, sh = love.graphics.getDimensions()
 function atlas.init()
-
-	createdAtlas = atlas.new(sw*2, sh)
-	intermediaryCanvas = love.graphics.newCanvas(sw, sh)
-	atlas.createdAtlas = createdAtlas
-	atlas.interCanvas = intermediaryCanvas
+	atlases = {}
+	atlases[1] = atlas.new(sw, sh)
+	atlases[2] = atlas.new(sw, sh)
+	atlas.atlases = atlases
 end
 
+local selfRenderTime = false
+
+function atlas.setBench(time)
+	selfRenderTime = time
+end
+
+local coefficient = 1.5
 function atlas.assign(element)
+	local avg, sum, canvasID = 0, 0, element.context:getCanvasIndex(true) or 1
+
+	for i, e in ipairs(element.renderBench) do
+		sum = sum + e
+	end
+
+	avg = sum/#element.renderBench
+	
+	local areaBelow = atlas.getFreeArea(canvasID)
+	local area = element.view.h*element.view.w
+
+	local areaCoef = (2-(atlas.getRatio(canvasID)) )-(area/(areaBelow/(4+3*atlas.getRatio(canvasID))))
+	local speedCoef = avg/selfRenderTime
+	
+	if not ((areaCoef+speedCoef)>coefficient) then
+		return 
+	end
+
 	local elW = element.view.w
 	local elH = element.view.h
-	local canvas, quad, interQuad = createdAtlas:assignElement(element)
-	if not canvas and createdAtlas.ideal_area < createdAtlas.taken_area*4 then
+	local canvas, quad, interQuad = atlases[canvasID]:assignElement(element)
+	if not canvas and atlases[canvasID].ideal_area < atlases[canvasID].taken_area*4 then
 		--print('refragmenting ;3')
-		createdAtlas:refragment()
-		canvas, quad, interQuad = createdAtlas:assignElement(element)
+		atlases[canvasID]:refragment()
+		canvas, quad, interQuad = atlases[canvasID]:assignElement(element)
 		if not canvas then
 			--print('ran out of space')
 		end
@@ -45,7 +68,8 @@ function atlas.assign(element)
 end
 
 function atlas.unassign(element)
-	createdAtlas:unassignElement(element)
+	local canvasID = element.context:getCanvasIndex(true) or 1
+	atlases[canvasID]:unassignElement(element)
 end
 
 function atlas.unassignAll()
