@@ -7,7 +7,7 @@ The idea is to build custom and build simple.
 
 ## Getting started:
 Load helium with `local helium = require 'helium'`
-or [check out the pre-configured demo repository](https://github.com/qeffects/helium-demo/))
+or [check out the pre-configured demo repository](https://github.com/qeffects/helium-demo/)
 
 The structure of an element's function is:
 
