@@ -5,7 +5,17 @@
 ----------------------------------------------------]]
 local path     = ...
 local helium   = require(path..".dummy")
-helium.conf    = require(path..".conf")
+
+local defaultConf = require(path..".conf")
+helium.conf = {}
+if HELIUM_CONFIG then
+	for i, e in pairs(defaultConf) do
+		helium.conf[i] = HELIUM_CONFIG[i] or e
+	end
+else
+	helium.conf = defaultConf
+end
+
 helium.utils   = require(path..".utils")
 helium.element = require(path..".core.element")
 helium.input   = require(path..".core.input")
@@ -34,6 +44,8 @@ function helium.load()
 	helium.atlas.load()
 end
 
+helium.load()
+
 function helium.unload()
 	helium.atlas.unassignAll()
 	helium.elementBuffer = {}
@@ -41,6 +53,7 @@ end
 
 
 function helium.draw()
+	helium.stack.newFrame()
 	if skipframes == 0 then
 		local startTime = love.timer.getTime()
 		
@@ -110,7 +123,6 @@ if helium.conf.AUTO_RUN then
 		-- Main loop time.
 		return function()
 			-- Process events.
-			helium.stack.newFrame()
 			if love.event then
 				love.event.pump()
 				for name, a,b,c,d,e,f in love.event.poll() do
@@ -126,26 +138,20 @@ if helium.conf.AUTO_RUN then
 				end
 			end
 
-
 			-- Update dt, as we'll be passing it to update
 			if love.timer then dt = love.timer.step() end
 
 			-- Call update and draw
 			if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
-			local st = love.timer.getTime()
 			helium.update(dt)
-			heliumTime = love.timer.getTime()-st
 
 			if love.graphics and love.graphics.isActive() then
 				love.graphics.origin()
 				love.graphics.clear(love.graphics.getBackgroundColor())
 				
-				st = love.timer.getTime()
 				helium.draw()
-				heliumTime=heliumTime+love.timer.getTime()-st
 
 				if love.draw then love.draw() end
-
 
 				love.graphics.present()
 			end
