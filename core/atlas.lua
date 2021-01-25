@@ -1,38 +1,35 @@
 local atlas = {}
-local atlases
 atlas.__index = atlas
+local atlases ={}
+atlases.__index = atlases
 local BLOCK_SIZE = 5
-
-function atlas.load()
-	if not atlases then
-		atlas.init()
-	end
-end
-
-function atlas.getRatio(index)
-	return atlases[index].taken_area/atlases[index].ideal_area
-end
-
-function atlas.getFreeArea(index)
-	return atlases[index].ideal_area - atlases[index].taken_area
-end
-
-local sw, sh = love.graphics.getDimensions()
-function atlas.init()
-	atlases = {}
-	atlases[1] = atlas.new(sw, sh)
-	atlases[2] = atlas.new(sw, sh)
-	atlas.atlases = atlases
-end
-
+local coefficient = 1.5
 local selfRenderTime = false
+local sw, sh = love.graphics.getDimensions()
 
-function atlas.setBench(time)
+function atlases.create()
+	local self = {
+		atlases = {}
+	}
+	self.atlases[1] = atlas.new(sw, sh)
+	self.atlases[2] = atlas.new(sw, sh)
+
+	return setmetatable(self, atlases)
+end
+
+function atlases.setBench(time)
 	selfRenderTime = time
 end
 
-local coefficient = 1.5
-function atlas.assign(element)
+function atlases:getRatio(index)
+	return self.atlases[index].taken_area/self.atlases[index].ideal_area
+end
+
+function atlases:getFreeArea(index)
+	return self.atlases[index].ideal_area - self.atlases[index].taken_area
+end
+
+function atlases:assign(element)
 	local avg, sum, canvasID = 0, 0, element.context:getCanvasIndex(true) or 1
 
 	for i, e in ipairs(element.renderBench) do
@@ -41,10 +38,10 @@ function atlas.assign(element)
 
 	avg = sum/#element.renderBench
 	
-	local areaBelow = atlas.getFreeArea(canvasID)
+	local areaBelow = self:getFreeArea(canvasID)
 	local area = element.view.h*element.view.w
 
-	local areaCoef = (2-(atlas.getRatio(canvasID)) )-(area/(areaBelow/(4+3*atlas.getRatio(canvasID))))
+	local areaCoef = (2-(self:getRatio(canvasID)) )-(area/(areaBelow/(4+3*self:getRatio(canvasID))))
 	local speedCoef = avg/selfRenderTime
 	
 	if not ((areaCoef+speedCoef)>coefficient) then
@@ -53,11 +50,11 @@ function atlas.assign(element)
 
 	local elW = element.view.w
 	local elH = element.view.h
-	local canvas, quad, interQuad = atlases[canvasID]:assignElement(element)
-	if not canvas and atlases[canvasID].ideal_area < atlases[canvasID].taken_area*4 then
+	local canvas, quad, interQuad = self.atlases[canvasID]:assignElement(element)
+	if not canvas and self.atlases[canvasID].ideal_area < self.atlases[canvasID].taken_area*4 then
 		--print('refragmenting ;3')
-		atlases[canvasID]:refragment()
-		canvas, quad, interQuad = atlases[canvasID]:assignElement(element)
+		self.atlases[canvasID]:refragment()
+		canvas, quad, interQuad = self.atlases[canvasID]:assignElement(element)
 		if not canvas then
 			--print('ran out of space')
 		end
@@ -67,18 +64,23 @@ function atlas.assign(element)
 	return canvas, quad, interQuad
 end
 
-function atlas.unassign(element)
+function atlases:unassign(element)
 	local canvasID = element.context:getCanvasIndex(true) or 1
-	atlases[canvasID]:unassignElement(element)
+	self.atlases[canvasID]:unassignElement(element)
 end
 
-function atlas.unassignAll()
-	createdAtlas.users = {}
-	createdAtlas:unMarkTiles(1, 1, createdAtlas.tileW, createdAtlas.tileH)
-	createdAtlas.taken_area = 0
+function atlases:unassignAll()
+	self.atlases[1].users = {}
+	self.atlases[2].users = {}
+
+	self.atlases[1]:unMarkTiles(1, 1, self.atlases[1].tileW, self.atlases[1].tileH)
+	self.atlases[2]:unMarkTiles(1, 1, self.atlases[2].tileW, self.atlases[2].tileH)
+
+	self.atlases[1].taken_area = 0
+	self.atlases[2].taken_area = 0
 end
 
-function atlas.onscreenchange(newW, newH)
+function atlases.onscreenchange(newW, newH)
 
 end
 
@@ -139,7 +141,6 @@ function atlas:assignElement(element)
 			w = tileSizeX,
 			h = tileSizeY,
 			quad = quad,
-			interQuad = iquad
 		}
 
 		self:markTiles(x, y, tileSizeX, tileSizeY)
@@ -241,4 +242,4 @@ function atlas:unassignElement(element)
 	self.users[element] = nil
 end
 
-return atlas
+return atlases

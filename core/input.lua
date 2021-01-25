@@ -1,12 +1,50 @@
 local path   = string.sub(..., 1, string.len(...) - string.len(".core.input"))
 local stack = require(path .. ".core.stack")
+local helium = require(path .. ".dummy")
 
 local input = {
 	eventHandlers = {},
-	subscriptions = {},
+	subscriptions = setmetatable({}, {__index = function (t, index)
+		return helium.scene.activeScene and helium.scene.activeScene[index] or nil
+	end}),
 	activeEvents  = {}
 }
 input.__index = input
+
+--Middle man functions
+local orig = {
+	mousepressed = love.handlers['mousepressed'],
+	mousereleased = love.handlers['mousereleased'],
+	keypressed = love.handlers['keypressed'],
+	keyreleased = love.handlers['keyreleased'],
+	mousemoved = love.handlers['mousemoved']
+}
+
+love.handlers['mousepressed'] = function(x, y, btn, d, e, f)
+	if not input.eventHandlers.mousepressed(x, y, btn, d, e ,f) then
+		orig.mousepressed(x, y, btn, d, e, f)
+	end
+end
+love.handlers['mousereleased'] = function(x, y, btn, d, e, f)
+	if not input.eventHandlers.mousereleased(x, y, btn, d, e ,f) then
+		orig.mousereleased(x, y, btn, d, e, f)
+	end
+end
+love.handlers['keypressed'] = function(key, b, c, d, e, f)
+	if not input.eventHandlers.keypressed(key, b, c, d, e, f) then
+		orig.keypressed(key, b, c, d, e, f)
+	end
+end
+love.handlers['keyreleased'] = function(key, b, c, d, e, f)
+	if not input.eventHandlers.keyreleased(key, b, c, d, e, f) then
+		orig.keyreleased(key, b, c, d, e, f)
+	end
+end
+love.handlers['mousemoved'] = function(x, y, dx, dy, e, f)
+	if not input.eventHandlers.mousemoved(x, y, dx, dy, e, f) then
+		orig.mousemoved(x, y, dx, dy, e, f)
+	end
+end
 
 local function sortFunc(t1, t2)
 	if t1 == t2 then

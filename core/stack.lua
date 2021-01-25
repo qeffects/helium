@@ -14,13 +14,13 @@ local currentTemporalZ = 0
 ---@param elem element
 function context.new(elem)
     local ctx = setmetatable({
+		capturedChilds = {},
         view = elem.view,
         element = elem,
         childrenContexts = {},
 		childRenderTime = 0,
 		deferChildren = false,
 		events = event.new(),
-		capturedChilds = {},
 		temporalZ = {z = nil},
 	}, context)
 	
@@ -219,6 +219,13 @@ end
 
 function context:offPosChange(callback)
 	self.events:unsub('poschange', callback)
+end
+
+function context:onEveryChild(func)
+	func(self.element)
+	for i, e in ipairs(self.childrenContexts) do
+		self.childrenContexts:onEveryChild(func)
+	end
 end
 
 --Function meant for external context capture

@@ -20,7 +20,7 @@ function(param, view)
 end
 ```
 
-and you can make that function in to an element 'factory' like this:
+and you can make that function into an element 'factory' like this:
 ```lua
 elementCreator = helium(function(param, view)
 
@@ -30,7 +30,7 @@ elementCreator = helium(function(param, view)
 end)
 ```
 
-then you call the element factory with parameters and optionally width and height:
+then you call the element factory with a table of parameters that will get passed to the element and optionally width and height:
 
 ```lua
 element = elementCreator({text = 'foo-bar'}, 100, 20)

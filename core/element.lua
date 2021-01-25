@@ -3,6 +3,7 @@
 local path = string.sub(..., 1, string.len(...) - string.len(".core.element"))
 local helium = require(path .. ".dummy")
 local context = require(path.. ".core.stack")
+local scene = require(path.. ".core.scene")
 
 ---@class Element
 local element = {}
@@ -157,9 +158,11 @@ end
 local newCanvas, newQuad = love.graphics.newCanvas, love.graphics.newQuad
 function element:createCanvas()
 
-	self.canvas, self.quad = helium.atlas.assign(self)
+	self.canvas, self.quad = scene.activeScene.atlas:assign(self)
 
+	print('here')
 	if not self.canvas then
+		print('failed')
 		self.settings.failedCanvas = true
 		self.settings.hasCanvas = false
 		return
@@ -266,7 +269,7 @@ function element:externalRender()
 			self:renderWrapper()
 		end
 	end
-	--lg.setScissor()
+	lg.setScissor()
 
 	setCanvas(cnvs)
 
@@ -282,7 +285,11 @@ end
 
 function element:externalUpdate()
 	self.context:zIndex()
-	if not self.settings.failedCanvas and self.settings.testRenderPasses == 0 and not self.settings.hasCanvas then
+	if not self.settings.failedCanvas
+		and self.settings.testRenderPasses == 0
+		and not self.settings.hasCanvas 
+		and scene.activeScene.cached then
+
 		self:createCanvas()
 
 		self.settings.pendingUpdate = true
@@ -296,7 +303,7 @@ function element:externalUpdate()
 	if self.deferResize then
 		self.context:sizeChanged()
 		if self.settings.hasCanvas then 
-			helium.atlas.unassign(self)
+			scene.activeScene.atlas:unassign(self)
 			self.settings.hasCanvas = false
 			self.settings.testRenderPasses = 15
 			self.canvas = nil
@@ -334,7 +341,7 @@ function element:draw(x, y, w, h)
 		end
 	elseif not self.settings.inserted then
 		self.settings.inserted = true
-		insert(helium.elementInsertionQueue, self)
+		insert(scene.activeScene.buffer, self)
 	end
 
 	if self.settings.firstDraw then
