@@ -63,11 +63,13 @@ function scene:draw()
 	if not helium.benchNum then
 		scene.bench()
 	end
-	--We don't want any side effects affecting internal rendering
-	love.graphics.reset()
+	
+	love.graphics.push("all")
+	love.graphics.setColor(1,1,1,1)
 	for i, e in ipairs(self.buffer) do
 		e:externalRender()
 	end
+	love.graphics.pop()
 
 end
 

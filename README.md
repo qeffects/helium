@@ -42,10 +42,34 @@ this will create a new instance of the element, and then you can draw it to what
 element:draw(100, 100)
 ```
 
+A quick detour in to 'scenes' which are a collection of elements to be drawn onscreen
+
+A scene is necessary to start drawing elements, so let's create one like this and set it to active:
+
+```lua
+local scene = helium.scene.new(true)
+scene:activate()
+```
+
+Then you can draw and update the scene in love's functions:
+
+```lua
+function love.update(dt)
+	scene:update(dt)
+end
+
+function love.draw()
+	--drawn below the ui element
+	scene:draw()
+	--drawn above the ui elements
+end
+```
+
 Let's draw a rectangle with text with the previous skeleton and functions:
 
 ```lua
 local helium = require 'helium'
+local scene = helium.scene.new(true)
 
 local elementCreator = helium(function(param, view)
 
@@ -60,6 +84,14 @@ end)
 local element = elementCreator({text = 'foo-bar'}, 100, 20)
 --Needs to be called only once, to draw and then :undraw to stop drawing it onscreen
 element:draw(100, 100)
+
+function love.update(dt)
+	scene:update(dt)
+end
+
+function love.draw()
+	scene:draw()
+end
 ```
 
 As you can see, you can use regular love.graphics functions inside the element's rendering function, furthermore you don't have to worry about coordinates, as x:0,y:0 inside the element's rendering function will always be the element's onscreen x,y, and the element's dimensions are passed in the view table.
@@ -82,4 +114,5 @@ end)
 
 [View the resulting hello world repository here](https://github.com/qeffects/helium-demo/)
 
-Or continue on to the advanced guide: ~~link
+Or continue on to the State and Input guide: [Here](./docs/State-Input-Guide.md)    
+If you are using gamestates, scene guide will be of interest: ~~    

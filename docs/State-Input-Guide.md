@@ -19,7 +19,10 @@ And then using it inside the element like:
 
 ```lua
 local elementCreator = helium(function(param, view)
+	--Note that changing elementState.var now will re-render the element with this new elementState
 	local elementState = useState({var = 10})
+	--Changing this value will not update the element, but it can be used nonetheless:
+	local notState = {var = 10}
 .
 	return function()
 

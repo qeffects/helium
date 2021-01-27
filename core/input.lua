@@ -5,7 +5,10 @@ local helium = require(path .. ".dummy")
 local input = {
 	eventHandlers = {},
 	subscriptions = setmetatable({}, {__index = function (t, index)
-		return helium.scene.activeScene and helium.scene.activeScene[index] or nil
+		return helium.scene.activeScene and helium.scene.activeScene.subscriptions[index] or nil
+	end,
+	__newindex = function(t, index, val)
+		helium.scene.activeScene.subscriptions[index] = val
 	end}),
 	activeEvents  = {}
 }
