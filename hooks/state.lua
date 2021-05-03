@@ -1,4 +1,4 @@
-local path = string.sub(..., 1, string.len(...) - string.len(".control.state"))
+local path = string.sub(..., 1, string.len(...) - string.len(".hooks.state"))
 local context = require(path.. ".core.stack")
 
 return function (base)

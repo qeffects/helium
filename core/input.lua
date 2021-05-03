@@ -194,7 +194,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 				sub.currentEvent = false
 				captured         = true
 				if sub.cleanUp then
-					sub.cleanUp(x, y, btn)
+					sub.cleanUp(x-sub.x, y-sub.y, btn)
 				end
 			end
 		end
@@ -206,7 +206,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 				sub.currentEvent = false
 				captured         = true
 				if sub.cleanUp then
-					sub.cleanUp(x, y)
+					sub.cleanUp(x-sub.x, y-sub.y)
 				end
 			end
 		end
@@ -215,7 +215,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 	if input.subscriptions.mousereleased then
 		for index, sub in ipairs(input.subscriptions.mousereleased) do
 			if sub.active and sub:checkInside(x, y) then
-				sub:emit(x, y, btn)
+				sub:emit(x-sub.x, y-sub.y, btn)
 				captured = true
 			end
 
@@ -225,7 +225,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 	if input.subscriptions.mousereleased_outside then
 		for index, sub in ipairs(input.subscriptions.mousereleased_outside) do
 			if sub.active and sub:checkOutside(x, y) then
-				sub:emit(x, y, btn)
+				sub:emit(x-sub.x, y-sub.y, btn)
 				captured = true
 			end
 
@@ -243,7 +243,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 			local succ = sub:checkInside(x, y)
 
 			if succ and sub.active then
-				sub.cleanUp      = sub:emit(x, y, btn) or dummyfunc
+				sub.cleanUp      = sub:emit(x-sub.x, y-sub.y, btn) or dummyfunc
 				sub.currentEvent = true
 				return true
 			end
@@ -264,7 +264,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 	if input.subscriptions.mousepressed then
 		for index, sub in ipairs(input.subscriptions.mousepressed) do
 			if sub.active and sub:checkInside(x, y) then 
-				sub:emit(x, y, btn)
+				sub:emit(x-sub.x, y-sub.y, btn)
 				return true
 			end
 
@@ -274,7 +274,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 	if input.subscriptions.mousepressed_outside then
 		for index, sub in ipairs(input.subscriptions.mousepressed_outside) do
 			if sub.active and sub:checkOutside(x, y) then
-				sub:emit(x, y, btn)
+				sub:emit(x-sub.x, y-sub.y, btn)
 				return true
 			end
 
@@ -320,13 +320,13 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 			local succ = sub:checkInside(x, y)
 
 			if sub.active and not sub.currentEvent and succ then
-				sub.cleanUp      = sub:emit(x, y, dx, dy) or dummyfunc
+				sub.cleanUp      = sub:emit(x-sub.x, y-sub.y, dx, dy) or dummyfunc
 				sub.currentEvent = true
 				return true
 			elseif sub.currentEvent and not succ then
 				sub.currentEvent = false
 				if sub.cleanUp then
-					sub.cleanUp(x, y)
+					sub.cleanUp(x-sub.x, y-sub.y)
 				end
 				return true
 			end
@@ -338,9 +338,9 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 		for index, sub in ipairs(input.subscriptions.dragged) do
 			if sub.active and sub.currentEvent then
 				if not sub.cleanUp then
-					sub.cleanUp  = sub:emit(x, y, dx, dy) or dummyfunc
+					sub.cleanUp  = sub:emit(x-sub.x, y-sub.y, dx, dy) or dummyfunc
 				else
-					sub:emit(x, y, dx, dy)
+					sub:emit(x-sub.x, y-sub.y, dx, dy)
 				end
 
 				return true
