@@ -21,6 +21,7 @@ function context.new(elem)
 		childRenderTime = 0,
 		deferChildren = false,
 		events = event.new(),
+		attachedState = {},
 		temporalZ = {z = nil},
 	}, context)
 	
@@ -185,6 +186,16 @@ function context:normalizeSize(w, h)
 	end
 
 	return wPX or w, hPX or h
+end
+
+function context:findAttachedState(name)
+	if self.attachedState and self.attachedState[name] then
+		return self.attachedState[name]
+	elseif self.parentCtx then
+		return self.parentCtx:findAttachedState(name)
+	else
+		return nil
+	end
 end
 
 --To be used by the element

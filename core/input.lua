@@ -18,6 +18,7 @@ input.__index = input
 local orig = {
 	mousepressed = love.handlers['mousepressed'],
 	mousereleased = love.handlers['mousereleased'],
+	textinput = love.handlers['textinput'],
 	keypressed = love.handlers['keypressed'],
 	keyreleased = love.handlers['keyreleased'],
 	mousemoved = love.handlers['mousemoved']
@@ -41,6 +42,11 @@ end
 love.handlers['keyreleased'] = function(key, b, c, d, e, f)
 	if not input.eventHandlers.keyreleased(key, b, c, d, e, f) then
 		orig.keyreleased(key, b, c, d, e, f)
+	end
+end
+love.handlers['textinput'] = function(text, b, c, d, e, f)
+	if not input.eventHandlers.textinput(text, b, c, d, e, f) then
+		orig.textinput(text, b, c, d, e, f)
 	end
 end
 love.handlers['mousemoved'] = function(x, y, dx, dy, e, f)
@@ -82,6 +88,8 @@ end
 
 	keypressed,--key pressed
 	keyreleased,--key released
+
+	textinput, --same as love
 
 	###COMPLEX EVENTS###
 		dragged,
@@ -283,12 +291,12 @@ function input.eventHandlers.mousepressed(x, y, btn)
 	return captured
 end
 
-function input.eventHandlers.keypressed(btn)
+function input.eventHandlers.keypressed(btn, btncode)
 	local captured = false
 	if input.subscriptions.keypressed then
 		for index, sub in ipairs(input.subscriptions.keypressed) do
 			if sub.active then
-				sub:emit( btn)
+				sub:emit(btn, btncode)
 				captured = true
 			end
 
@@ -298,12 +306,26 @@ function input.eventHandlers.keypressed(btn)
 	return captured
 end
 
-function input.eventHandlers.keyreleased(btn)
+function input.eventHandlers.keyreleased(btn, btncode)
 	local captured = false
 	if input.subscriptions.keyreleased then
 		for index, sub in ipairs(input.subscriptions.keyreleased) do
 			if sub.active then
-				sub:emit(btn)
+				sub:emit(btn, btncode)
+				captured = true
+			end
+		end
+	end
+
+	return captured
+end
+
+function input.eventHandlers.textinput(text)
+	local captured = false
+	if input.subscriptions.textinput then
+		for index, sub in ipairs(input.subscriptions.textinput) do
+			if sub.active then
+				sub:emit(text)
 				captured = true
 			end
 		end

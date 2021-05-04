@@ -27,7 +27,7 @@ return function(values, w, h, onChange, onFinish, onClick, onRelease, onEnter, o
 	local vertical = h > w
 	local originx, originy = x or 0, y or 0
 	local slider = state {
-		value = values.start or ((values.max - values.min)/2)+values.min or 0,
+		value = values.value or ((values.max - values.min)/2)+values.min or 0,
 		divisions = values.divider or 1,
 		min = values.min or 0,
 		max = values.max or values.start or 0,
@@ -74,7 +74,7 @@ return function(values, w, h, onChange, onFinish, onClick, onRelease, onEnter, o
 				onFinish(slider.value)
 			end
 		end
-	end)
+	end, nil, originx, originy )
 
 
 	input('hover', function(x, y, w, h) 
@@ -91,7 +91,7 @@ return function(values, w, h, onChange, onFinish, onClick, onRelease, onEnter, o
 
 			handle.over = false
 		end
-	end)
+	end, nil, originx, originy )
 
 	return slider, handle
 end

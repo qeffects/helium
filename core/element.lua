@@ -160,9 +160,7 @@ function element:createCanvas()
 
 	self.canvas, self.quad = scene.activeScene.atlas:assign(self)
 
-	print('here')
 	if not self.canvas then
-		print('failed')
 		self.settings.failedCanvas = true
 		self.settings.hasCanvas = false
 		return
