@@ -1,92 +1,109 @@
-local path   = string.sub(..., 1, string.len(...) - string.len(".layout"))
+local path   = string.sub(..., 1, string.len(...) - string.len(".layout.init"))
 
+---@class layout
+---@field protected vars table
+---@field protected type function
 local layout = {}
 local layouts = {}
-layouts.column = require(path..'.layout.column')
-layouts.row = require(path..'.layout.row')
 layout.__index = layout
 local element = require(path..'.core.element')
 local stack = require(path..'.core.stack')
 
 --Start prep phase
-function layout.type(type)
+function layout.type(binder, callback)
 	local curStack = stack.getContext()
 	curStack:startDeferingChildren()
 
 	local self = {
 		vars = {
-			type = type or 'column',
 			offLeft = 0,
 			offTop = 0,
 			width   = 1,
 			hpad    = 3,
 			vpad    = 3,
 			height  = 1,
-			alignX  = 'left', --options: left, center, right
-			alignY  = 'top', --options: top, center, bottom
-			--flowDir = 'rtl', --options: rtl/ttb
 		},
-		stack = curStack
+		stack = curStack,
+		binder = binder,
+		callback = callback,
 	}
 	
 	return setmetatable(self, layout)
 end
 
+---Aligns the container vertically
+---@param pos 'left'|'center'|'right'
 function layout:alignVert(pos)
 	self.vars.alignY = pos
 
 	return self
 end
 
+---Aligns the container horizontally
+---@param pos 'top'|'center'|'bottom'
 function layout:alignHoriz(pos)
 	self.vars.alignX = pos
 	
 	return self
 end
 
---Sets up the box of the layout
+---Sets up the width of the box of the layout
+---@param w number width in pixels or absolute 0-1
 function layout:width(w)
 	self.vars.width = w
 	
 	return self
 end
 
+---Sets up the height of the box of the layout
+---@param h number width in pixels or absolute 0-1
 function layout:height(h)
 	self.vars.height = h
 
 	return self
 end
-
+---Offset from the left
+---@param x number offset in pixels or absolute 0-1
 function layout:left(x)
 	self.vars.offLeft = x
 
 	return self
 end
 
+---Offset from the right
+---@param x number offset in pixels or absolute 0-1
 function layout:right(x)
 	self.vars.offRight = x
 	
 	return self
 end
 
+---Offset from the top
+---@param y number offset in pixels or absolute 0-1
 function layout:top(y)
 	self.vars.offTop = y
 
 	return self
 end
 
+---Offset from the bottom
+---@param y number offset in pixels or absolute 0-1
 function layout:bottom(y)
 	self.vars.offBot = y
 
 	return self
 end
 
+---Padding for the elements vertically
+---@param px number offset in pixels
 function layout:vPadding(px)
 	self.vars.vpad = px
 
 	return self
 end
 
+---Padding for the elements horizontally
+---@param px number offset in pixels
 function layout:hPadding(px)
 	self.vars.hpad = px
 
@@ -97,6 +114,8 @@ end
 --top + bottom = height ignored
 --top px + bottom relative works
 --left relative + bottom px works 
+
+
 function layout:draw()
 	local stack = self.stack
 	local children = stack:stopDeferingChildren()
@@ -127,19 +146,9 @@ function layout:draw()
 		x = 0
 	end
 
-	layouts[self.vars.type](
-		x,
-		y,
-		width,
-		height,
-		children,
-		self.vars.hpad,
-		self.vars.vpad,
-		self.vars.alignX,
-		self.vars.alignY
-	)
+	self.callback(self.binder, x, y, width, height, children, self.vars.hpad, self.vars.vpad)
 end
 
 
-setmetatable(layout, {__call = function(s, type) return layout.type(type) end })
+setmetatable(layout, {__call = function(s, callback, binder) return layout.type(callback, binder) end })
 return layout

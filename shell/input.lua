@@ -3,6 +3,22 @@ local state = require(path.. ".hooks.state")
 local input = require(path.. ".core.input")
 local utf8 = require("utf8")
 
+---@class textState
+---@param focused boolean @indicates whether this element is currently focused
+---@param text string @current state of the input string
+---@param over boolean @indicates whether the mouse is over this field
+
+---Textinput element wrapper
+---@param onChange function|nil
+---@param onFinish function|nil
+---@param startStr function|nil
+---@param onEnter function|nil
+---@param onExit function|nil
+---@param x number|nil
+---@param y number|nil
+---@param w number|nil
+---@param h number|nil
+---@return textState
 return function(onChange, onFinish, startStr, onEnter, onExit, x, y, w, h)
 	local textState = state {
 		focused = false,

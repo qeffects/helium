@@ -1,6 +1,10 @@
 local path = string.sub(..., 1, string.len(...) - string.len(".hooks.state"))
 local context = require(path.. ".core.stack")
 
+---Creates a new 'state' object that will update the current element whenever a field is changed
+---@generic T : table
+---@param base T
+---@return T
 return function (base)
 	base = base or {}
 	local fakeBase = {}

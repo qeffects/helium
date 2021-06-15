@@ -80,8 +80,17 @@ function atlases:unassignAll()
 	self.atlases[2].taken_area = 0
 end
 
-function atlases.onscreenchange(newW, newH)
+function atlases:onscreenchange(newW, newH)
+	for i, e in ipairs(self.atlases[1].users) do
+		e:reassignCanvas()
+	end
 
+	for i, e in ipairs(self.atlases[2].users) do
+		e:reassignCanvas()
+	end
+
+	self.atlases[1] = atlas.new(newW, newH)
+	self.atlases[2] = atlas.new(newW, newH)
 end
 
 function atlas.new(w, h)

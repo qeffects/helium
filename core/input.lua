@@ -174,14 +174,18 @@ function subscription:checkOutside(x, y)
 	return not (x>self.x and x<self.x+self.w and y>self.y and y<self.y+self.h)
 end
 
+---@alias InputMouseClickSubscriptionCallback fun(x:number, y:number, mouseButton:string)
+---@alias InputMouseClickComplexSubscriptionCallback fun(x:number, y:number, mouseButton:string):fun(x:number, y:number)|nil
+---@alias InputMouseMoveComplexSubscriptionCallback fun(x:number, y:number, dx:number, dy:number):fun(x:number, y:number)|nil
+---@alias InputKeyPressSubscriptionCallback fun(key:KeyConstant|string, scancode:Scancode|string)
+---@alias InputTextInputSubscriptionCallback fun(text:string)
+
 input.subscribe = subscription.create
----@param eventType string
----@param callback function
----@param cbOff boolean
----@param x number
----@param y number
----@param w number
----@param h number
+---@overload fun(self:any, eventType: "'mousepressed'"|"'mousereleased'"|"'mousepressed_outside'"|"'mousereleased_outside'", callback: InputMouseClickSubscriptionCallback, cbOff: boolean, x: number|nil, y:number|nil, w: number|nil, h:number|nil)
+---@overload fun(self:any, eventType: "'clicked'", callback: InputMouseClickComplexSubscriptionCallback, cbOff: boolean, x:number|nil, y:number|nil, w:number|nil, h:number|nil)
+---@overload fun(self:any, eventType: "'hover'"|"'dragged'", callback: InputMouseMoveComplexSubscriptionCallback, cbOff: boolean, x:number|nil, y:number|nil, w:number|nil, h:number|nil)
+---@overload fun(self:any, eventType: "'keypressed'"|"'keyreleased'", callback: InputKeyPressSubscriptionCallback, cbOff: boolean)
+---@overload fun(self:any, eventType: "'textinput'", callback: InputTextInputSubscriptionCallback, cbOff: boolean)
 input.__call = function(self, eventType, callback, cbOff, x, y, w, h)
 	x = x or 0
 	y = y or 0

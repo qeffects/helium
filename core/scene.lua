@@ -4,12 +4,17 @@ local atlas  = require(path..'.core.atlas')
 local helium = require(path..'.dummy')
 local input  = require(path..'.core.input')
 
+---@class scene
 local scene = {
 	activeScene = nil
 }
 scene.__index = scene
 
+---comment
+---@param cached boolean @whether to enable caching on this scene
+---@return scene
 function scene.new(cached)
+	---@type scene
 	local self = {
 		atlas = cached and atlas.create() or nil,
 		cached = cached or false,
@@ -34,30 +39,32 @@ function scene.bench()
 	end
 end
 
+---Activates this scene
 function scene:activate()
 	scene.activeScene = self
 end
 
---Keeps the scene in memory with potentially the atlas
+---Keeps the scene in memory with potentially the atlas
 function scene:deactivate()
 	scene.activeScene = nil
 end
 
-
+---Recreates this scene 
 function scene:reload()
 	self.atlas = self.cached and atlas.create() or nil
 	self.ioSubscriptions = {}
 	self.buffer = {}
 end
 
---Nukes the scene and it's elements and atlases and subscriptions from memory
---To achieve same state as after creation, use reload
+---Nukes the scene and it's elements and atlases and subscriptions from memory
+---To achieve same state as after creation, use reload
 function scene:unload()
 	self.atlas = nil
 	self.buffer = nil
 	self.ioSubscriptions = nil
 end
 
+---Draws this scene and it's elements
 function scene:draw()
 	helium.stack.newFrame()
 	if not helium.benchNum then
@@ -73,6 +80,8 @@ function scene:draw()
 
 end
 
+---Updates this scene and it's elements
+---@param dt number
 function scene:update(dt)
 	for i = 1, #self.buffer do
 		if self.buffer[i]:externalUpdate(i) then

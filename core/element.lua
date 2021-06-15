@@ -11,9 +11,8 @@ element.__index = element
 
 local type,pcall = type,pcall
 setmetatable(element, {
-		__call = function(cls, ...)
+		__call = function(cls, func, param, w, h, flags)
 			local self
-			local func, param, w, h = ...
 			
 			--Make the object inherit class
 			self = setmetatable({}, element)
@@ -22,6 +21,7 @@ setmetatable(element, {
 			self:new(param,nil, w, h)
 			self:createProxies()
 
+			---@type Element
 			return self
 		end
 	})
@@ -31,6 +31,9 @@ setmetatable(element, {
 function element:new(param, immediate, w, h)
 	self.parameters = {}
 	self.baseParams = param
+
+	--Internal state callbacks
+	self.callbacks = {}
 
 	--Internal settings
 	self.settings = {
@@ -73,6 +76,18 @@ function element:new(param, immediate, w, h)
 	self.view = self.baseView
 end
 
+function element:reassignCanvas()
+	self.settings.failedCanvas = false
+	self.settings.hasCanvas = false
+
+	self.canvas = nil
+	self.quad = nil
+	self.interQuad = nil
+	self.deferResize = nil
+
+	self.context:bubbleUpdate()
+end
+
 function element:sizeChange(i, v)
 	local increase = self.baseView[i] < v
 
@@ -90,6 +105,12 @@ function element:sizeChange(i, v)
 	else
 		self.deferResize = { increased = increase }
 	end
+
+	if self.callbacks.onSizeChange then
+		for i, cb in ipairs(self.callbacks.onSizeChange) do
+			cb(self.view.w, self.view.h)
+		end
+	end
 end
 
 function element:posChange(i, v)
@@ -99,22 +120,37 @@ function element:posChange(i, v)
 	if not self.deferRepos then
 		self.deferRepos = true
 	end
+
+	
+	if self.callbacks.onPosChange then
+		for i, cb in ipairs(self.callbacks.onPosChange) do
+			cb(self.view.x, self.view.y)
+		end
+	end
 end
 
 function element:onUpdate()
-
-end
-
-function element:onDraw()
-
+	if self.callbacks.onUpdate then
+		for i, cb in ipairs(self.callbacks.onUpdate) do
+			cb()
+		end
+	end
 end
 
 function element:onLoad()
-
+	if self.callbacks.onLoad then
+		for i, cb in ipairs(self.callbacks.onLoad) do
+			cb()
+		end
+	end
 end
 
 function element:onDestroy()
-
+	if self.callbacks.onDestroy then
+		for i, cb in ipairs(self.callbacks.onDestroy) do
+			cb()
+		end
+	end
 end
 
 function element:createProxies()
@@ -204,6 +240,7 @@ function element:setup()
 	self.context:unset()
 
 	self.settings.isSetup = true
+	self:onLoad()
 end
 
 local setColor, rectangle, setFont, printf = love.graphics.setColor, love.graphics.rectangle, love.graphics.setFont, love.graphics.printf
@@ -294,6 +331,7 @@ function element:externalUpdate()
 	end
 
 	if self.settings.pendingUpdate then
+		self:onUpdate()
 		self.settings.needsRendering = true
 		self.settings.pendingUpdate  = false
 	end
@@ -321,8 +359,8 @@ end
 
 local insert = table.insert
 
---External functions
---Acts as the entrypoint for beginning rendering
+---External functions
+---Acts as the entrypoint for beginning rendering
 ---@param x number
 ---@param y number
 function element:draw(x, y, w, h)
@@ -355,10 +393,12 @@ function element:getSize()
 	return self.view.w, self.view.h
 end
 
+---Destroys this element
 function element:destroy()
 	self.settings.remove  = true
 	self.settings.firstDraw = true
 	self.settings.isSetup = false
+	self:onDestroy()
 	self.context:destroy()
 end
 
