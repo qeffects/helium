@@ -9,7 +9,7 @@ row.__index = row
 function row.new()
 	local self = setmetatable({}, row)
 	
-	return layout(self.draw)
+	return layout(self, self.draw)
 end
 
 function row:draw(x, y, width, height, children, hpad, vpad, alignX)

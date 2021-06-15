@@ -28,9 +28,10 @@ setmetatable(element, {
 
 --Control functions
 --The new function that should be used for element creation
-function element:new(param, immediate, w, h)
+function element:new(param, immediate, w, h, flags)
 	self.parameters = {}
 	self.baseParams = param
+	self.flags = flags or {}
 
 	--Internal state callbacks
 	self.callbacks = {}

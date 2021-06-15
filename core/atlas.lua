@@ -1,5 +1,6 @@
 local atlas = {}
 atlas.__index = atlas
+---@class atlases
 local atlases ={}
 atlases.__index = atlases
 local BLOCK_SIZE = 5
@@ -11,8 +12,8 @@ function atlases.create()
 	local self = {
 		atlases = {}
 	}
-	self.atlases[1] = atlas.new(sw, sh)
-	self.atlases[2] = atlas.new(sw, sh)
+	self.atlases[1] = atlas.new(sw*1.10, sh*1.10)
+	self.atlases[2] = atlas.new(sw*1.10, sh*1.10)
 
 	return setmetatable(self, atlases)
 end
@@ -80,7 +81,7 @@ function atlases:unassignAll()
 	self.atlases[2].taken_area = 0
 end
 
-function atlases:onscreenchange(newW, newH)
+function atlases:onresize(newW, newH)
 	for i, e in ipairs(self.atlases[1].users) do
 		e:reassignCanvas()
 	end
@@ -89,8 +90,8 @@ function atlases:onscreenchange(newW, newH)
 		e:reassignCanvas()
 	end
 
-	self.atlases[1] = atlas.new(newW, newH)
-	self.atlases[2] = atlas.new(newW, newH)
+	self.atlases[1] = atlas.new(newW*1.10, newH*1.10)
+	self.atlases[2] = atlas.new(newW*1.10, newH*1.10)
 end
 
 function atlas.new(w, h)
@@ -246,9 +247,11 @@ end
 
 function atlas:unassignElement(element)
 	local user = self.users[element]
-	self:unMarkTiles(user.x, user.y, user.w, user.h)
-	self.taken_area = self.taken_area - ((user.w*BLOCK_SIZE)*(user.h*BLOCK_SIZE))
-	self.users[element] = nil
+	if user then
+		self:unMarkTiles(user.x, user.y, user.w, user.h)
+		self.taken_area = self.taken_area - ((user.w*BLOCK_SIZE)*(user.h*BLOCK_SIZE))
+		self.users[element] = nil
+	end
 end
 
 return atlases

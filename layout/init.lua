@@ -125,6 +125,7 @@ function layout:draw()
 	if self.vars.offTop and self.vars.offBot then
 		marginV = stack:normY(self.vars.offTop) + stack:normY(self.vars.offBot)
 		height = stack:normY(1) - marginV
+		y = self.vars.offTop
 	elseif self.vars.offTop then
 		y = stack:normY(self.vars.offTop)
 		height = math.min(stack:normY(self.vars.height), maxH-y)
@@ -137,6 +138,7 @@ function layout:draw()
 	if self.vars.offLeft and self.vars.offRight then
 		marginH = stack:normX(self.vars.offLeft) + stack:normX(self.vars.offRight)
 		width = stack:normX(1) - marginH
+		x = self.vars.offLeft
 	elseif self.vars.offLeft then
 		x = stack:normX(self.vars.offLeft)
 		width = math.min(stack:normX(self.vars.width), maxW-x)
@@ -150,5 +152,5 @@ function layout:draw()
 end
 
 
-setmetatable(layout, {__call = function(s, callback, binder) return layout.type(callback, binder) end })
+setmetatable(layout, {__call = function(s, binder, callback) return layout.type(binder, callback) end })
 return layout

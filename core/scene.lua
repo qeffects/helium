@@ -80,6 +80,20 @@ function scene:draw()
 
 end
 
+function scene:resize(nw, nh)
+	if self.atlas then
+		self.atlas:onresize(nw, nh)
+	end
+end
+
+function scene:drawAtlases(x, y)
+	if self.atlas then
+		local aw = self.atlas.atlases[1].canvas:getWidth()
+		love.graphics.draw(self.atlas.atlases[1].canvas, x, y, 0, 0.5, 0.5)
+		love.graphics.draw(self.atlas.atlases[2].canvas, x+aw/2, y, 0, 0.5, 0.5)
+	end
+end
+
 ---Updates this scene and it's elements
 ---@param dt number
 function scene:update(dt)

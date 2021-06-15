@@ -36,8 +36,8 @@ setmetatable(helium, {__call = function(s, chunk)
 		draw = function (param, inputs, x, y, w, h)
 		end
 	}, 
-	{__call = function(s, param, w, h)
-		return helium.element(chunk, param, w, h)
+	{__call = function(s, param, w, h, flags)
+		return helium.element(chunk, param, w, h, flags)
 	end,})
 end})
 

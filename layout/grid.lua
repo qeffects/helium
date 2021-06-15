@@ -35,19 +35,18 @@ local layout = require(path..'.init')
 
 ---@type GridConfig
 local preconfiguredGrid = {
-	colSpacing = 3,
-	rowSpacing = 3,
-	verticalStretchMode = 'normal',
-	horizontalStretchMode = 'normal',
+	colSpacing = 20,
+	rowSpacing = 20,
+	verticalStretchMode = 'stretch',
+	horizontalStretchMode = 'stretch',
 	verticalAlignMode = 'center',
 	horizontalAlignMode = 'center',
-	--rows = {1, 1, 1, 1},
-	columns = {1, 1, 1, 1},
-	--[[layout = {
-		{'header', 'header', 'header'},
-		{'sidebar','content','content'},
-		{'sidebar','content','content'},
-	}]]
+	rows = {5,5},
+	columns = {1,3,1},
+	layout = {
+		{'sidebar','content','sidebar2'},
+		{'sidebar','content','sidebar2'},
+	}
 }
 
 ---@class grid
@@ -99,7 +98,7 @@ local function alignHandlerY(mode, y, hr, hc)
 	end
 end
 
-function grid:draw(xRoot, yRoot, width, height, children, hpad, vpad)
+function grid:draw(xRoot, yRoot, width, height, children)
 	-- Either of these means no named layout
 	local fullyAutoLayout = false
 	local autoCols = false
@@ -110,7 +109,8 @@ function grid:draw(xRoot, yRoot, width, height, children, hpad, vpad)
 	local vertValueToPixels = 0
 	local horValueToPixels = 0
 
-	local finalLayout = {}
+	local XIndexes = {}
+	local YIndexes = {}
 
 	if self.gridLayout.columns then
 		if not self.gridLayout.rows then
@@ -120,12 +120,23 @@ function grid:draw(xRoot, yRoot, width, height, children, hpad, vpad)
 				local total = 0
 				
 				for i, col in ipairs(self.gridLayout.rows) do
+					YIndexes[i] = {}
+
+					YIndexes[i].start = total
 					total = total + col
+					YIndexes[i].finish = total
 				end
 				
-				vertValueToPixels = (height-(self.gridLayout.rowSpacing*total))/total
+				vertValueToPixels = height/total
 			else
-				vertValueToPixels = (height-(self.gridLayout.rowSpacing*self.gridLayout.rows))/self.gridLayout.rows
+				vertValueToPixels = height/self.gridLayout.rows
+				
+				for y = 1, self.gridLayout.rows do
+					YIndexes[y] = {}
+					YIndexes[y].start = y-1
+					YIndexes[y].finish = y
+				end
+				
 				equalRows = true
 			end
 		end
@@ -133,12 +144,23 @@ function grid:draw(xRoot, yRoot, width, height, children, hpad, vpad)
 			local total = 0
 			
 			for i, col in ipairs(self.gridLayout.columns) do
+				XIndexes[i] = {}
+
+				XIndexes[i].start = total
 				total = total + col
+				XIndexes[i].finish = total
 			end
 			
 			horValueToPixels = width/total
 		else
 			horValueToPixels = width/self.gridLayout.columns
+
+			for x = 1, self.gridLayout.columns do
+				XIndexes[x] = {}
+				XIndexes[x].start = x-1
+				XIndexes[x].finish = x
+			end
+
 			equalCols = true
 		end
 	else
@@ -154,18 +176,131 @@ function grid:draw(xRoot, yRoot, width, height, children, hpad, vpad)
 					total = total + col
 				end
 				
-				vertValueToPixels = (height-(self.gridLayout.rowSpacing*total))/total
+				vertValueToPixels = (height)/total
 			else
-				vertValueToPixels = (height-(self.gridLayout.rowSpacing*self.gridLayout.rows))/self.gridLayout.rows
+				vertValueToPixels = (height)/self.gridLayout.rows
 				equalRows = true
 			end
 		end
 	end
 
-	print(horValueToPixels, width)
-
 	if (not autoRows) and (not autoCols) then
 
+		if self.gridLayout.layout then
+
+			local layout = {}
+			--flip layout table
+			for x = 1, #self.gridLayout.layout[1] do
+				layout[x] = {}
+			end 
+
+			for x = 1, #self.gridLayout.layout do
+				for y = 1, #self.gridLayout.layout[x] do
+					layout[y][x] = self.gridLayout.layout[x][y]
+				end 
+			end
+
+			local layoutDepth, layoutWidth = #self.gridLayout.layout, #layout
+			if type(self.gridLayout.rows) == "table" then
+				if not #self.gridLayout.rows == layoutDepth then
+					error('Layout table doesnt match row number')
+				end
+			else
+				if not self.gridLayout.rows == layoutDepth then
+					error('Layout table doesnt match row number')
+				end
+			end
+			if type(self.gridLayout.columns) == "table" then
+				if not #self.gridLayout.columns == layoutWidth then
+					error('Layout table doesnt match column number')
+				end
+			else
+				if not self.gridLayout.columns == layoutWidth then
+					error('Layout table doesnt match column number')
+				end
+			end
+			-- {x, y, width, height}
+			local fields = {
+
+			}
+
+			for x = 1, #layout do
+				for y = 1, #layout[x] do
+					if not fields[layout[x][y]] then	
+						local finishedRow = false
+						local finishedCol = false
+						local curField = layout[x][y]
+						fields[curField] = {}
+
+						fields[curField].x = XIndexes[x].start
+						fields[curField].y = YIndexes[y].start
+						fields[curField].finX = XIndexes[x].finish
+						fields[curField].finY = YIndexes[y].finish
+
+						local parseX, parseY = x+1, y+1
+						while not finishedRow do
+							if layout[x][parseY] and layout[x][parseY] == curField then
+								fields[curField].finY = YIndexes[parseY].finish
+							else
+								finishedRow = true
+							end
+							parseY = parseY + 1
+						end
+
+						while not finishedCol do
+							if layout[parseX] and layout[parseX][y] == curField then
+								fields[curField].finX = XIndexes[parseX].finish
+							else
+								finishedCol = true
+							end
+							parseX = parseX + 1
+						end
+
+						fields[curField].h = fields[curField].finY - fields[curField].y
+						fields[curField].w = fields[curField].finX - fields[curField].x
+					end
+				end
+			end
+
+			for i, field in pairs(fields) do
+				for y, elem in ipairs(children) do
+					if elem.flags[i] then
+						field.element = elem
+					end
+				end
+			end
+
+			for i, field in pairs(fields) do
+				if field.element then
+					local containerWidth = (field.w*horValueToPixels)-(self.gridLayout.colSpacing)
+					local containerHeight = (field.h*vertValueToPixels)-(self.gridLayout.rowSpacing)
+
+					local containerX = ((field.x)*horValueToPixels)+(self.gridLayout.colSpacing/2)
+					local containerY = ((field.y)*vertValueToPixels)+(self.gridLayout.rowSpacing/2)
+
+					local w, h = field.element:getSize()
+					local x, y 
+
+					if self.gridLayout.horizontalStretchMode =='stretch' then
+						w = containerWidth
+						x = containerX
+					else
+						x = alignHandlerX(self.gridLayout.horizontalAlignMode, containerX, containerWidth, w)
+					end
+
+					if self.gridLayout.verticalStretchMode =='stretch' then
+						h = containerHeight
+						y = containerY
+					else
+						y = alignHandlerY(self.gridLayout.verticalAlignMode, containerY, containerHeight, h)
+					end
+
+					field.element:draw(x+xRoot, y+yRoot, w, h)
+				end
+			end
+		else
+			error('please provide a layout table')
+		end
 	elseif fullyAutoLayout then--one element per width, vertically down
 		local carriagePos = 0
 		if children then
@@ -204,12 +339,14 @@ function grid:draw(xRoot, yRoot, width, height, children, hpad, vpad)
 
 				if self.gridLayout.horizontalStretchMode =='stretch' then
 					w = width
+					x = xRoot
 				else
 					x = alignHandlerX(self.gridLayout.horizontalAlignMode, xRoot, width, w)
 				end
 
 				if self.gridLayout.verticalStretchMode =='stretch' then
 					h = rowSize
+					y = carriagePos
 				else
 					y = alignHandlerY(self.gridLayout.verticalAlignMode, carriagePos, rowSize, h)
 				end
@@ -254,6 +391,7 @@ function grid:draw(xRoot, yRoot, width, height, children, hpad, vpad)
 
 				if self.gridLayout.horizontalStretchMode =='stretch' then
 					w = colSize
+					x = colDrawStart
 				else
 					x = alignHandlerX(self.gridLayout.horizontalAlignMode, colDrawStart, colSize, w)
 				end

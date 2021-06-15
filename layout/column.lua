@@ -8,7 +8,7 @@ column.__index = column
 function column.new()
 	local self = setmetatable({}, column)
 	
-	return layout(self.draw)
+	return layout(self, self.draw)
 end
 
 function column:draw(x, y, width, height, children, hpad, vpad, alignX)
