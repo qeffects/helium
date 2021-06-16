@@ -187,7 +187,6 @@ function grid:draw(xRoot, yRoot, width, height, children)
 	if (not autoRows) and (not autoCols) then
 
 		if self.gridLayout.layout then
-
 			local layout = {}
 			--flip layout table
 			for x = 1, #self.gridLayout.layout[1] do

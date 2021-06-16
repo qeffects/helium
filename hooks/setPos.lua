@@ -1,4 +1,4 @@
-local path = string.sub(..., 1, string.len(...) - string.len(".control.size"))
+local path = string.sub(..., 1, string.len(...) - string.len(".hooks.setPos"))
 local stack = require(path..'.core.stack')
 
 --Sets the relative position

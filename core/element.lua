@@ -18,7 +18,7 @@ setmetatable(element, {
 			self = setmetatable({}, element)
 			self.parentFunc = func
 
-			self:new(param,nil, w, h)
+			self:new(param,nil, w, h, flags)
 			self:createProxies()
 
 			---@type Element
@@ -213,6 +213,11 @@ function element:setParam(p)
 	self.context:bubbleUpdate()
 end
 
+function element:setSize(w, h)
+	self.view.w = w or self.view.w
+	self.view.h = h or self.view.h
+end
+
 function element:setCalculatedSize(w, h)
 	self.view.minW = w or self.view.minW
 	self.view.minH = h or self.view.minH
@@ -312,7 +317,9 @@ function element:externalRender()
 	if self.settings.hasCanvas then
 		lg.translate(self.view.x, self.view.y)
 		setColor(1, 1, 1, 1)
+		lg.setBlendMode('alpha','premultiplied')
 		draw(self.canvas, self.quad, 0, 0)
+		lg.setBlendMode('alpha','alphamultiply')
 	end
 
 	lg.setScissor()
@@ -320,6 +327,7 @@ function element:externalRender()
 end
 
 function element:externalUpdate()
+	self.context:set()
 	self.context:zIndex()
 	if not self.settings.failedCanvas
 		and self.settings.testRenderPasses == 0
@@ -355,6 +363,7 @@ function element:externalUpdate()
 		self.deferRepos = false
 	end
 
+	self.context:unset()
 	return self.settings.remove
 end
 

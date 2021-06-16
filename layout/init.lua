@@ -147,7 +147,7 @@ function layout:draw()
 		height = math.min(stack:normX(self.vars.width), maxW-x)
 		x = 0
 	end
-
+	
 	self.callback(self.binder, x, y, width, height, children, self.vars.hpad, self.vars.vpad)
 end
 

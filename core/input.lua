@@ -167,11 +167,11 @@ function subscription:emit(...)
 end
 
 function subscription:checkInside(x, y)
-	return x>self.x and x<self.x+self.w and y>self.y and y<self.y+self.h
+	return x>self.stack.absX and x<self.stack.absX+self.w and y>self.stack.absY and y<self.stack.absY+self.h
 end
 
 function subscription:checkOutside(x, y)
-	return not (x>self.x and x<self.x+self.w and y>self.y and y<self.y+self.h)
+	return not (x>self.stack.absX and x<self.stack.absX+self.w and y>self.stack.absY and y<self.stack.absY+self.h)
 end
 
 ---@alias InputMouseClickSubscriptionCallback fun(x:number, y:number, mouseButton:string)

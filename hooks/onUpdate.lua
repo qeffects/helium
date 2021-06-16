@@ -11,5 +11,5 @@ return function (callback)
 		activeContext.element.callbacks.onUpdate = {}
 	end
 	
-	activeContext.element.callbacks.onUpdate[activeContext.element.callbacks.onUpdate+1] = callback
+	activeContext.element.callbacks.onUpdate[#activeContext.element.callbacks.onUpdate+1] = callback
 end
