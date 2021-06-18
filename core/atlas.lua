@@ -133,7 +133,7 @@ function atlas:assignElement(element)
 	if t then
 		local quad, iquad
 		--Refragmenting path
-		if self.users[element] then
+		if self.users[element] and self.users[element].quad and self.users[element].interQuad then
 			--update by reference owo
 			self.users[element].quad:setViewport((x-1)*BLOCK_SIZE, (y-1)*BLOCK_SIZE, elW, elH)
 			self.users[element].interQuad:setViewport(0, 0, elW, elH)
