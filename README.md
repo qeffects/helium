@@ -70,6 +70,7 @@ Let's draw a rectangle with text with the previous skeleton and functions:
 ```lua
 local helium = require 'helium'
 local scene = helium.scene.new(true)
+scene:activate()
 
 local elementCreator = helium(function(param, view)
 
