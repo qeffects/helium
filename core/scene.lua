@@ -21,7 +21,10 @@ function scene.new(cached)
 		subscriptions = {},
 		buffer = {}
 	}
-	return setmetatable(self, scene)
+	local newScene = setmetatable(self, scene)
+	newScene:activate()
+
+	return newScene
 end
 
 local skipframes = 10
