@@ -12,7 +12,7 @@ In helium you introduce state to your elements by importing the state module lik
 Note that you can have other values in the top level function(obviously), but changing them doesn't guarantee a display update
 
 ```lua
-local useState = require 'helium.control.state'
+local useState = require 'helium.hooks.state'
 ```
 
 And then using it inside the element like:
@@ -77,7 +77,7 @@ The text now should toggle between 2 colors whenever pressed
 The full call signature of input is:
 `local sub = input(eventType, callback, startOn, x, y, w, h)`
 
-See the demo repository with this example here: ~~link     
+See the demo repository with this example here: [Demo repo](https://github.com/qeffects/helium-input-state-demo)    
 See all event types explained here: [Input events](./core/Input-events.md)    
 There are a few pre-made hooks that abstract away state management, see here: [Shell](./Shell.md)     
 For a more general overview of the whole library: [Module index](./Modules-Index.md)    
