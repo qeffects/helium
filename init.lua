@@ -1,10 +1,10 @@
 --[[--------------------------------------------------
 	Helium UI by qfx (qfluxstudios@gmail.com)
 	Copyright (c) 2019 Elmārs Āboliņš
-	gitlab.com/project link here
+	https://github.com/qeffects/helium
 ----------------------------------------------------]]
 local path     = ...
-local helium   = require(path..".dummy")
+local helium   = require(path..'.dummy')
 
 local defaultConf = require(path..".conf")
 helium.conf = {}
@@ -16,11 +16,9 @@ else
 	helium.conf = defaultConf
 end
 
-helium.utils   = require(path..".utils")
 helium.scene   = require(path..".core.scene")
 helium.element = require(path..".core.element")
 helium.input   = require(path..".core.input")
-helium.loader  = require(path..".loader")
 helium.stack   = require(path..".core.stack")
 helium.atlas   = require(path..".core.atlas")
 helium.__index = helium

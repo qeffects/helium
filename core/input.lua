@@ -1,3 +1,8 @@
+--[[--------------------------------------------------
+	Helium UI by qfx (qfluxstudios@gmail.com)
+	Copyright (c) 2021 Elmārs Āboliņš
+	https://github.com/qeffects/helium
+----------------------------------------------------]]
 local path   = string.sub(..., 1, string.len(...) - string.len(".core.input"))
 local stack = require(path .. ".core.stack")
 local helium = require(path .. ".dummy")

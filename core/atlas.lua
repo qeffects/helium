@@ -1,3 +1,9 @@
+--[[--------------------------------------------------
+	Helium UI by qfx (qfluxstudios@gmail.com)
+	Copyright (c) 2021 Elmārs Āboliņš
+	https://github.com/qeffects/helium
+----------------------------------------------------]]
+
 local atlas = {}
 atlas.__index = atlas
 ---@class atlases

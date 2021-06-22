@@ -1,5 +1,8 @@
---[[ Element superclass ]]
---[[ Love is currently a hard dependency, although not in many places ]]
+--[[--------------------------------------------------
+	Helium UI by qfx (qfluxstudios@gmail.com)
+	Copyright (c) 2021 Elmārs Āboliņš
+	https://github.com/qeffects/helium
+----------------------------------------------------]]
 local path = string.sub(..., 1, string.len(...) - string.len(".core.element"))
 local helium = require(path .. ".dummy")
 local context = require(path.. ".core.stack")
