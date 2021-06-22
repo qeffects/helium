@@ -115,4 +115,4 @@ end)
 [View the resulting hello world repository here](https://github.com/qeffects/helium-demo/)
 
 Or continue on to the State and Input guide: [Here](./docs/State-Input-Guide.md)    
-If you are using gamestates, scene guide will be of interest: ~~    
+If you are using gamestates, scene guide will be of interest: [Here](./docs/core/Scenes.md)    

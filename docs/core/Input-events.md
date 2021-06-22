@@ -1,3 +1,5 @@
+## Input
+
 There are a few types of input events, some directly acting like love's own input events:
 
 ### SIMPLE EVENTS
@@ -18,3 +20,5 @@ And some complex events that abstract functionality for ui elements
 dragged
 clicked
 hover
+
+This is just a list of events, for a [guide check out this](./../State-Input-Guide.md)

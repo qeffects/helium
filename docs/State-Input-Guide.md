@@ -77,6 +77,7 @@ The text now should toggle between 2 colors whenever pressed
 The full call signature of input is:
 `local sub = input(eventType, callback, startOn, x, y, w, h)`
 
-See the demo repository with this example here: ~~link
-See all event types explained here: ~~link
-There are a few pre-made hooks that abstract away state management, see here: ~~link
+See the demo repository with this example here: ~~link     
+See all event types explained here: [Input events](./core/Input-events.md)    
+There are a few pre-made hooks that abstract away state management, see here: [Shell](./Shell.md)     
+For a more general overview of the whole library: [Module index](./Modules-Index.md)    

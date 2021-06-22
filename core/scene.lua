@@ -95,10 +95,9 @@ function scene:drawAtlases(x, y)
 end
 
 ---Updates this scene and it's elements
----@param dt number
-function scene:update(dt)
+function scene:update()
 	for i = 1, #self.buffer do
-		if self.buffer[i]:externalUpdate(i) then
+		if self.buffer[i]:externalUpdate() then
 			table.remove(self.buffer, i)
 		end
 	end

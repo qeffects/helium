@@ -214,15 +214,17 @@ function element:setParam(p)
 end
 
 function element:setSize(w, h)
-	self.view.w = w or self.view.w
-	self.view.h = h or self.view.h
+	local w, h = w or self.view.w, h or self.view.h 
+
+	self.view.w = math.max(w, self.view.minW)
+	self.view.h = math.max(h, self.view.minH)
 end
 
-function element:setCalculatedSize(w, h)
+function element:setMinSize(w, h)
 	self.view.minW = w or self.view.minW
 	self.view.minH = h or self.view.minH
-	self.view.w = w or self.view.minW
-	self.view.h = h or self.view.minH
+	self.view.w = math.max(self.view.w, w, self.view.minW)
+	self.view.h = math.max(self.view.h, h, self.view.minH)
 end
 
 local dummy = function() end
