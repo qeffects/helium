@@ -117,4 +117,4 @@ end)
 
 Or continue on to the State and Input guide: [Here](./docs/State-Input-Guide.md)    
 If you are using gamestates, scene guide will be of interest: [Here](./docs/core/Scenes.md)    
-For a more general overview of the whole library: [Module index](./Modules-Index.md)    
+For a more general overview of the whole library: [Module index](./docs/Modules-Index.md)    
