@@ -1,4 +1,4 @@
-local path = string.sub(..., 1, string.len(...) - string.len(".shell.button"))
+local path = string.sub(..., 1, string.len(...) - string.len(".shell.checkbox"))
 local state = require(path.. ".hooks.state")
 local input = require(path.. ".core.input")
 
@@ -21,22 +21,23 @@ local input = require(path.. ".core.input")
 return function(onClick, onRelease, onEnter, onExit, startOn, x, y, w, h)
 	local checkbox = state {
 		down = false,
-		toggled = not not startOn,
+		toggled = false,
 		over = false,
 	}
+	checkbox.toggled = startOn
 	input('clicked', function(x, y, w, h)
+		checkbox.down = true
+		
 		if onClick then
 			onClick(x, y, w, h)
 		end
-
-		checkbox.down = true
-		
 		return function(x, y, w, h)
-			if onRelease then
-				onRelease(x, y, w, h)
-			end
 			checkbox.toggled = not checkbox.toggled
 			checkbox.down = false
+
+			if onRelease then
+				onRelease(checkbox.toggled, y, w, h)
+			end
 		end
 	end)
 
