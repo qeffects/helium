@@ -109,6 +109,9 @@ function context:getCanvasIndex(forCanvas)
 			return self.parentCtx:getCanvasIndex() == 1 and 2 or 1
 		else
 			if forCanvas then
+				if self.element.settings.renderingParentCanvasIndex then
+					return self.element.settings.renderingParentCanvasIndex == 1 and 2 or 1
+				end
 				return self.parentCtx:getCanvasIndex() == 1 and 2 or 1
 			end
 		end
