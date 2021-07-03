@@ -1,5 +1,5 @@
 --Allows to expose a function to outside the element simply
-local path = string.sub(..., 1, string.len(...) - string.len(".hooks.onDestroy"))
+local path = string.sub(..., 1, string.len(...) - string.len(".hooks.callback"))
 local context = require(path.. ".core.stack")
 
 ---Creates a callback on the 'name' field for the current element

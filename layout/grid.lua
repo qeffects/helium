@@ -1,7 +1,7 @@
 local column = require "helium.layout.column"
 --my copy of the cssssss grids
 local path   = string.sub(..., 1, string.len(...) - string.len(".grid"))
-local layout = require(path..'.init')
+local layout = require(path..'.layout')
 
 ---@class GridCell
 ---@field name string @Will find the element with the relevant flag
@@ -350,7 +350,7 @@ function grid:draw(xRoot, yRoot, width, height, children)
 					y = alignHandlerY(self.gridLayout.verticalAlignMode, carriagePos, rowSize, h)
 				end
 
-				e:draw(x, y, w, h)
+				e:draw(x, y + yRoot, w, h)
 
 				carriagePos = carriagePos + self.gridLayout.rowSpacing + rowSize
 				row = row + 1

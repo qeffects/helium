@@ -245,3 +245,23 @@ function(param, view)
 	end
 end
 ```
+
+### /hooks/setCaching.lua
+
+Makes this element get cached, you'll need to set MANUAL_CACHING in config for this to work
+
+Keep in mind that it won't make a magical performance benefit to an element that is being re-rendered by changes in children components, it's own state, resizing or position changes.
+
+`setCaching()`
+
+Usage:
+
+```lua
+local setCaching = require('helium.hooks.setCaching')
+
+function(param, view)
+	setCaching()
+    return function()
+	end
+end
+```

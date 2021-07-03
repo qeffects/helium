@@ -1,5 +1,5 @@
 local path   = string.sub(..., 1, string.len(...) - string.len(".container"))
-local layout = require(path..'.init')
+local layout = require(path..'.layout')
 
 ---@class Container
 local container = {}

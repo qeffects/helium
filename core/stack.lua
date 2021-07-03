@@ -8,13 +8,16 @@ local helium = require(path .. ".dummy")
 local event = require(path..'.core.events')
 
 ---@class context
-local context = {}
+---@field element Element
+local context = {
+	type = 'context'
+}
 context.__index = context
 
 local activeContext
 local currentTemporalZ = 0
 
----@param elem element
+---@param elem Element
 function context.new(elem)
     local ctx = setmetatable({
 		capturedChilds = {},
@@ -203,7 +206,19 @@ end
 
 --To be used by the element
 function context:sizeChanged()
+	if self.parentCtx then
+		self.absX      = self.parentCtx.absX + self.view.x
+		self.absY      = self.parentCtx.absY + self.view.y
+	else
+		self.absX      = self.view.x
+		self.absY      = self.view.y
+	end
+
 	self.events:push('resize')
+end
+
+local posPropogator = function(elem)
+	elem:posChanged()
 end
 
 function context:posChanged()
@@ -214,6 +229,8 @@ function context:posChanged()
 		self.absX      = self.view.x
 		self.absY      = self.view.y
 	end
+
+	self:doOnEveryChild(posPropogator)
 
 	self.events:push('poschange')
 end
@@ -235,10 +252,16 @@ function context:offPosChange(callback)
 	self.events:unsub('poschange', callback)
 end
 
-function context:onEveryChild(func)
-	func(self.element)
+function context:doOnEveryChild(func)
 	for i, e in ipairs(self.childrenContexts) do
-		self.childrenContexts:onEveryChild(func)
+		e:onEveryChild(func)
+	end
+end
+
+function context:onEveryChild(func)
+	func(self)
+	for i, e in ipairs(self.childrenContexts) do
+		e:onEveryChild(func)
 	end
 end
 

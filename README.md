@@ -1,6 +1,10 @@
 ![alt text](https://i.imgur.com/ZQBQfsa.png "Helium")
 # Helium
 
+![Helium main menu demo](https://j.gifs.com/nRrKmp.gif)
+
+*a main menu demo made with helium, in action, find [it here](https://github.com/qeffects/main-menu-example)*
+
 ## Basic overview:
 Helium is practically more like a UI framework than a fully fledged UI library. 
 The idea is to build custom and build simple.
@@ -118,5 +122,7 @@ end)
 Or continue on to the State and Input guide: [Here](./docs/State-Input-Guide.md)    
 If you are using gamestates, scene guide will be of interest: [Here](./docs/core/Scenes.md)    
 For a more general overview of the whole library: [Module index](./docs/Modules-Index.md)    
+
+Also check out the helium configuration values: [Config](./docs/Configuration.md)
 
 There's also a main menu example project available here: [Project](https://github.com/qeffects/main-menu-example)

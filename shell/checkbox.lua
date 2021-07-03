@@ -1,4 +1,4 @@
-local path = string.sub(..., 1, string.len(...) - string.len(".shell.button"))
+local path = string.sub(..., 1, string.len(...) - string.len(".shell.checkbox"))
 local state = require(path.. ".hooks.state")
 local input = require(path.. ".core.input")
 

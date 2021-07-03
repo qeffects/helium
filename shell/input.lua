@@ -47,14 +47,14 @@ return function(onChange, onFinish, startStr, onEnter, onExit, x, y, w, h)
 				onFinish(textState.text)
 			end
 		end
-	end)
+	end, false)
 
 	textInput = input('textinput', function(text)
 		textState.text = textState.text .. text
 		if onChange then
 			onChange(textState.text)
 		end
-	end)
+	end, false)
 
 	input('mousepressed', function()
 		textState.focused = true

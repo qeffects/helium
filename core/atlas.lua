@@ -3,7 +3,8 @@
 	Copyright (c) 2021 Elmārs Āboliņš
 	https://github.com/qeffects/helium
 ----------------------------------------------------]]
-
+local path   = string.sub(..., 1, string.len(...) - string.len(".core.atlas"))
+local helium = require(path..'.dummy')
 local atlas = {}
 atlas.__index = atlas
 ---@class atlases
@@ -39,20 +40,22 @@ end
 function atlases:assign(element)
 	local avg, sum, canvasID = 0, 0, element.context:getCanvasIndex(true) or 1
 
-	for i, e in ipairs(element.renderBench) do
-		sum = sum + e
-	end
+	if not helium.conf.MANUAL_CACHING then
+		for i, e in ipairs(element.renderBench) do
+			sum = sum + e
+		end
 
-	avg = sum/#element.renderBench
+		avg = sum/#element.renderBench
 	
-	local areaBelow = self:getFreeArea(canvasID)
-	local area = element.view.h*element.view.w
+		local areaBelow = self:getFreeArea(canvasID)
+		local area = element.view.h*element.view.w
 
-	local areaCoef = (2-(self:getRatio(canvasID)) )-(area/(areaBelow/(4+3*self:getRatio(canvasID))))
-	local speedCoef = avg/selfRenderTime
+		local areaCoef = (2-(self:getRatio(canvasID)) )-(area/(areaBelow/(4+3*self:getRatio(canvasID))))
+		local speedCoef = avg/selfRenderTime
 	
-	if not ((areaCoef+speedCoef)>coefficient) then
-		return 
+		if not ((areaCoef+speedCoef)>coefficient) then
+			return 
+		end
 	end
 
 	local elW = element.view.w

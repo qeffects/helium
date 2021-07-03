@@ -1,5 +1,5 @@
 local path   = string.sub(..., 1, string.len(...) - string.len(".row"))
-local layout = require(path..'.init')
+local layout = require(path..'.layout')
 
 ---@class Row
 local row = {}

@@ -14,7 +14,7 @@ Element is the class for every ui element, in practice it's glue between the cod
 
 Input allows to create callbacks for helium internal input events
 
-[Find more here](./core/State-Input-Guide.md)
+[Find more here](./State-Input-Guide.md)
 
 [and here](./core/Input-events.md)
 

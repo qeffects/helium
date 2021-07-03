@@ -124,7 +124,6 @@ function element:posChange(i, v)
 	if not self.deferRepos then
 		self.deferRepos = true
 	end
-
 	
 	if self.callbacks.onPosChange then
 		for i, cb in ipairs(self.callbacks.onPosChange) do
@@ -258,13 +257,13 @@ local setColor, rectangle, setFont, printf = love.graphics.setColor, love.graphi
 local calcT
 
 function element:internalRender()
-	if self.settings.testRenderPasses > 0 and selfRenderTime then
+	if self.settings.testRenderPasses > 0 and selfRenderTime and not helium.conf.MANUAL_CACHING then
 		calcT = love.timer.getTime()
 	end
 
 	self.renderer()
 
-	if self.settings.testRenderPasses > 0 and selfRenderTime then
+	if self.settings.testRenderPasses > 0 and selfRenderTime and not helium.conf.MANUAL_CACHING then
 		self.settings.testRenderPasses = self.settings.testRenderPasses-1
 		local selfTime = love.timer.getTime()-calcT
 		table.insert(self.renderBench, selfTime)
@@ -334,10 +333,12 @@ end
 function element:externalUpdate()
 	self.context:set()
 	self.context:zIndex()
-	if not self.settings.failedCanvas
+	if ((not self.settings.failedCanvas
 		and self.settings.testRenderPasses == 0
-		and not self.settings.hasCanvas 
-		and scene.activeScene.cached then
+		and scene.activeScene.cached
+		and not helium.conf.MANUAL_CACHING)
+		or self.settings.forcedCanvas)
+		and not self.settings.hasCanvas then
 
 		self:createCanvas()
 

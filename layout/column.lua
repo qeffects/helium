@@ -1,5 +1,5 @@
 local path   = string.sub(..., 1, string.len(...) - string.len(".column"))
-local layout = require(path..'.init')
+local layout = require(path..'.layout')
 ---@class Column
 local column = {}
 column.__index = column
