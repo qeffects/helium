@@ -8,6 +8,8 @@ local helium = require(path .. ".dummy")
 local context = require(path.. ".core.stack")
 local scene = require(path.. ".core.scene")
 
+local currentCanvasID
+
 ---@class Element
 local element = {}
 element.__index = element
@@ -55,6 +57,8 @@ function element:new(param, immediate, w, h, flags)
 		immediate            = immediate or false,
 		--Whether this element has a canvas assigned
 		hasCanvas            = false,
+		--Which canvas is it assigned to
+		currentCanvasIndex   = nil,
 		--Current test render passes to be benchmarked
 		testRenderPasses     = 20,
 		--
@@ -197,7 +201,7 @@ end
 local newCanvas, newQuad = love.graphics.newCanvas, love.graphics.newQuad
 function element:createCanvas()
 
-	self.canvas, self.quad = scene.activeScene.atlas:assign(self)
+	self.canvas, self.quad, self.settings.currentCanvasIndex = scene.activeScene.atlas:assign(self)
 
 	if not self.canvas then
 		self.settings.failedCanvas = true
@@ -291,6 +295,18 @@ function element:externalRender()
 		self.settings.isSetup = true
 	end
 
+	local oldCanvasId
+	if self.settings.hasCanvas then
+		if self.settings.currentCanvasIndex == currentCanvasID then
+			--problem lol
+			self.settings.renderingParentCanvasIndex = currentCanvasID
+			self:reassignCanvas()
+		else
+			oldCanvasId = currentCanvasID
+			currentCanvasID = self.settings.currentCanvasIndex
+		end
+	end
+
 	if self.settings.needsRendering then
 		if self.settings.hasCanvas then
 			setCanvas(self.canvas)
@@ -328,6 +344,7 @@ function element:externalRender()
 
 	lg.setScissor()
 	love.graphics.pop()
+	currentCanvasID = oldCanvasId
 end
 
 function element:externalUpdate()
