@@ -83,3 +83,5 @@ options: `true / (false)`
 Manual caching can be enabled if you want manual control over which elements are atlassed, use together with the `setCaching()` hook
 
 Make sure to enable caching for the scenes you intend to use your element class for.
+
+[Read about the set caching hook here](https://github.com/qeffects/helium/blob/layout/docs/Hooks.md#hookssetcachinglua)
