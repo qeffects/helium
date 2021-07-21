@@ -85,3 +85,24 @@ end)
 
 elementFactory({x = 10}, 10, 10)
 ```
+
+### Methods
+
+The element has a few methods meant for user interaction, these are:
+
+`Element:draw(x, y, w, h)`
+
+Use this to draw something onscreen, you can also call this every frame if it's something that moves with your game objects
+This checks equality to the current viewport so it'll only get re-rendered if something actually changes, furthermore translations don't cause re-renders.
+
+---
+
+`Element:destroy()`
+
+Use destroy to remove this element from the scene
+
+---
+
+`Element:setParam(newParam)`
+
+Use setParam to pass new parameters to this element
