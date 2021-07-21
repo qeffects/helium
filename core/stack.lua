@@ -100,9 +100,8 @@ function context:endSelfRender(time)
 end
 
 function context:destroy()
-    self.elem:undraw()
     for i = 1, #self.childrenContexts do
-        self.childrenContexts[i]:destroy()
+        self.childrenContexts[i].element:destroy()
     end
 end
 
