@@ -18,7 +18,7 @@ function row:draw(x, y, width, height, children, hpad, vpad, alignX)
 		for i, e in ipairs(children) do
 			local w, _ = e:getSize()
 			e:draw(x+carriagePos+hpad, y+vpad)
-			carriagePos = carriagePos + w + vpad
+			carriagePos = carriagePos + w + hpad
 		end
 	end
 end
