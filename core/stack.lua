@@ -105,6 +105,18 @@ function context:destroy()
     end
 end
 
+function context:undraw()
+    for i = 1, #self.childrenContexts do
+        self.childrenContexts[i].element:undraw()
+    end
+end
+
+function context:redraw()
+    for i = 1, #self.childrenContexts do
+        self.childrenContexts[i].element:redraw()
+    end
+end
+
 function context:getCanvasIndex(forCanvas)
 	if self.parentCtx then
 		if self.element.settings.hasCanvas then

@@ -46,6 +46,7 @@ function element:new(param, immediate, w, h, flags)
 		isSetup              = false,
 		pendingUpdate        = true,
 		needsRendering       = true,
+		active               = true,
 		remove               = false,
 		--Unused for now?
 		calculatedDimensions = true,
@@ -285,8 +286,13 @@ function element:renderWrapper()
 
 	self.context:unset()
 end
+
 local lg = love.graphics
 function element:externalRender()
+	if not self.settings.active then
+		return
+	end
+
 	local cnvs = getCanvas()
 	love.graphics.push('all')
 
@@ -348,6 +354,9 @@ function element:externalRender()
 end
 
 function element:externalUpdate()
+	if not self.settings.active then
+		return
+	end
 	self.context:set()
 	self.context:zIndex()
 	if ((not self.settings.failedCanvas
@@ -402,6 +411,10 @@ function element:draw(x, y, w, h)
 	if w then self.view.w = w end
 	if h then self.view.h = h end
 
+	if not self.settings.active then
+		self:redraw()
+	end
+
 	local cx = context.getContext()
 	if cx then
 		if cx:childRender(self) then
@@ -429,10 +442,23 @@ end
 ---Destroys this element
 function element:destroy()
 	self.settings.remove  = true
+	self.settings.inserted  = false
+	self.settings.active  = false
 	self.settings.firstDraw = true
 	self.settings.isSetup = false
 	self:onDestroy()
 	self.context:destroy()
+end
+
+function element:redraw()
+	self.settings.active  = true
+	self.context:redraw()
+end
+
+---Stops rendering, updates and draw
+function element:undraw()
+	self.settings.active  = false
+	self.context:undraw()
 end
 
 return element

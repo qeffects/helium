@@ -207,7 +207,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 	local captured = false
 	if input.subscriptions.clicked then
 		for index, sub in ipairs(input.subscriptions.clicked) do
-			if sub.currentEvent then
+			if sub.currentEvent and sub.active and sub.stack.element.settings.active then
 				sub.currentEvent = false
 				captured         = true
 				if sub.cleanUp then
@@ -219,7 +219,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 	
 	if input.subscriptions.dragged then
 		for index, sub in ipairs(input.subscriptions.dragged) do
-			if sub.currentEvent then
+			if sub.currentEvent and sub.active and sub.stack.element.settings.active then
 				sub.currentEvent = false
 				captured         = true
 				if sub.cleanUp then
@@ -231,7 +231,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 
 	if input.subscriptions.mousereleased then
 		for index, sub in ipairs(input.subscriptions.mousereleased) do
-			if sub.active and sub:checkInside(x, y) then
+			if sub.active and sub.stack.element.settings.active and sub:checkInside(x, y) then
 				sub:emit(x-sub.x, y-sub.y, btn)
 				captured = true
 			end
@@ -241,7 +241,7 @@ function input.eventHandlers.mousereleased(x, y, btn)
 
 	if input.subscriptions.mousereleased_outside then
 		for index, sub in ipairs(input.subscriptions.mousereleased_outside) do
-			if sub.active and sub:checkOutside(x, y) then
+			if sub.active and sub.stack.element.settings.active and sub:checkOutside(x, y) then
 				sub:emit(x-sub.x, y-sub.y, btn)
 				captured = true
 			end
@@ -259,7 +259,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 		for index, sub in ipairs(input.subscriptions.clicked) do
 			local succ = sub:checkInside(x, y)
 
-			if succ and sub.active then
+			if succ and sub.active and sub.stack.element.settings.active then
 				sub.cleanUp      = sub:emit(x-sub.x, y-sub.y, btn) or dummyfunc
 				sub.currentEvent = true
 				return true
@@ -270,7 +270,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 	
 	if input.subscriptions.dragged then
 		for index, sub in ipairs(input.subscriptions.dragged) do
-			if sub.active and sub:checkInside(x, y) then 
+			if sub.active and sub.stack.element.settings.active and sub:checkInside(x, y) then 
 				sub.currentEvent = true
 				return true
 			end
@@ -280,7 +280,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 
 	if input.subscriptions.mousepressed then
 		for index, sub in ipairs(input.subscriptions.mousepressed) do
-			if sub.active and sub:checkInside(x, y) then 
+			if sub.active and sub.stack.element.settings.active and sub:checkInside(x, y) then 
 				sub:emit(x-sub.x, y-sub.y, btn)
 				return true
 			end
@@ -290,7 +290,7 @@ function input.eventHandlers.mousepressed(x, y, btn)
 
 	if input.subscriptions.mousepressed_outside then
 		for index, sub in ipairs(input.subscriptions.mousepressed_outside) do
-			if sub.active and sub:checkOutside(x, y) then
+			if sub.active and sub.stack.element.settings.active and sub:checkOutside(x, y) then
 				sub:emit(x-sub.x, y-sub.y, btn)
 				return true
 			end
@@ -304,7 +304,7 @@ function input.eventHandlers.keypressed(btn, btncode)
 	local captured = false
 	if input.subscriptions.keypressed then
 		for index, sub in ipairs(input.subscriptions.keypressed) do
-			if sub.active then
+			if sub.active and sub.stack.element.settings.active then
 				sub:emit(btn, btncode)
 				captured = true
 			end
@@ -319,7 +319,7 @@ function input.eventHandlers.keyreleased(btn, btncode)
 	local captured = false
 	if input.subscriptions.keyreleased then
 		for index, sub in ipairs(input.subscriptions.keyreleased) do
-			if sub.active then
+			if sub.active and sub.stack.element.settings.active then
 				sub:emit(btn, btncode)
 				captured = true
 			end
@@ -333,7 +333,7 @@ function input.eventHandlers.textinput(text)
 	local captured = false
 	if input.subscriptions.textinput then
 		for index, sub in ipairs(input.subscriptions.textinput) do
-			if sub.active then
+			if sub.active and sub.stack.element.settings.active then
 				sub:emit(text)
 				captured = true
 			end
@@ -350,7 +350,7 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 		for index, sub in ipairs(input.subscriptions.hover) do
 			local succ = sub:checkInside(x, y)
 
-			if sub.active and not sub.currentEvent and succ then
+			if sub.active and sub.stack.element.settings.active and not sub.currentEvent and succ then
 				sub.cleanUp      = sub:emit(x-sub.x, y-sub.y, dx, dy) or dummyfunc
 				sub.currentEvent = true
 				return true
@@ -367,7 +367,7 @@ function input.eventHandlers.mousemoved(x, y, dx, dy)
 	
 	if input.subscriptions.dragged then
 		for index, sub in ipairs(input.subscriptions.dragged) do
-			if sub.active and sub.currentEvent then
+			if sub.active and sub.stack.element.settings.active and sub.currentEvent then
 				if not sub.cleanUp then
 					sub.cleanUp  = sub:emit(x-sub.x, y-sub.y, dx, dy) or dummyfunc
 				else

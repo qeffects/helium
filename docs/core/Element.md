@@ -105,7 +105,13 @@ Inside it renders immediately, so you can put it inbetween other graphics operat
 
 `Element:destroy()`
 
-Use destroy to remove this element from the scene
+Use destroy to completely and irreversibly remove this element from the scene
+
+---
+
+`Element:undraw()`
+
+Use undraw to hide this element for now with the intention of re-drawing it sometime later, to do that just :draw() it again
 
 ---
 
