@@ -92,8 +92,14 @@ The element has a few methods meant for user interaction, these are:
 
 `Element:draw(x, y, w, h)`
 
-Use this to draw something onscreen, you can also call this every frame if it's something that moves with your game objects
+Use this to draw something onscreen, you can also call this every frame if it's something that moves with your game objects     
 This checks equality to the current viewport so it'll only get re-rendered if something actually changes, furthermore translations don't cause re-renders.
+
+This method performs slightly differently inside an element and outside
+
+Outside it inserts the element in to the buffer if it isn't already there, and will render at the scene:draw()
+
+Inside it renders immediately, so you can put it inbetween other graphics operations.
 
 ---
 
@@ -106,3 +112,26 @@ Use destroy to remove this element from the scene
 `Element:setParam(newParam)`
 
 Use setParam to pass new parameters to this element
+
+
+### Nested/Child Elements
+
+Within helium you can use nested/child elements without any special provisions, everything will work just like if it was outside    
+(Only difference is that inside :draw will be immediate, and also you should create the element in the element you intend to draw it in)
+
+```lua
+local childElementFactory = helium(function(param, view)
+	return function()
+		love.graphics.rectangle('fill', 0, 0, view.w, view.h)
+	end
+end)
+
+local elementFactory = helium(function(param, view)
+    local child = childElementFactory({x = 10}, 20, 20)
+
+	return function()
+		child:draw(100, 100)
+	end
+end)
+```
+
