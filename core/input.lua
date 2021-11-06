@@ -59,6 +59,11 @@ love.handlers['mousemoved'] = function(x, y, dx, dy, e, f)
 		orig.mousemoved(x, y, dx, dy, e, f)
 	end
 end
+love.handlers['filedropped'] = function(file, y, dx, dy, e, f)
+	if not input.eventHandlers.filedropped(file, y, dx, dy, e, f) then
+		orig.filedropped(file, y, dx, dy, e, f)
+	end
+end
 
 local function sortFunc(t1, t2)
 	if t1 == t2 then
@@ -306,6 +311,21 @@ function input.eventHandlers.keypressed(btn, btncode)
 		for index, sub in ipairs(input.subscriptions.keypressed) do
 			if sub.active and sub.stack.element.settings.active then
 				sub:emit(btn, btncode)
+				captured = true
+			end
+
+		end
+	end
+
+	return captured
+end
+
+function input.eventHandlers.filedropped(file)
+	local captured = false
+	if input.subscriptions.filedropped then
+		for index, sub in ipairs(input.subscriptions.filedropped) do
+			if sub.active and sub.stack.element.settings.active then
+				sub:emit(file)
 				captured = true
 			end
 
