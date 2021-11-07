@@ -1,4 +1,3 @@
-local column = require "helium.layout.column"
 --my copy of the cssssss grids
 local path   = string.sub(..., 1, string.len(...) - string.len(".grid"))
 local layout = require(path..'.layout')
