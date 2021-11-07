@@ -51,25 +51,26 @@ local function alignHandlerY(mode, y, hr, hc)
 	end
 end
 
-function container:draw(x, y, width, height, children, hpad, vpad, alignX)
+function container:draw(containerX, containerY, containerWidth, containerHeight, children, hpad, vpad, alignX)
 	local w, h = children[1]:getSize()
 	local x, y 
 
 	if self.halign =='stretch' then
-		w = width
+		w = containerWidth
 		x = x
 	else
 		x = alignHandlerX(self.halign, containerX, containerWidth, w)
 	end
 
 	if self.valign =='stretch' then
-		h = h
+		h = containerHeight
 		y = y
 	else
 		y = alignHandlerY(self.valign, containerY, containerHeight, h)
 	end
 
 	children[1]:draw(x, y, w, h)
+	return containerWidth, containerHeight
 end
 
 return container

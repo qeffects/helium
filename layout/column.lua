@@ -20,6 +20,7 @@ function column:draw(x, y, width, height, children, hpad, vpad, alignX)
 			carriagePos = carriagePos + h + vpad
 		end
 	end
+	return width, carriagePos
 end
 
 return column

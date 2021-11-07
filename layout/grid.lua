@@ -299,6 +299,7 @@ function grid:draw(xRoot, yRoot, width, height, children)
 		else
 			error('please provide a layout table')
 		end
+		return width, height
 	elseif fullyAutoLayout then--one element per width, vertically down
 		local carriagePos = 0
 		if children then
@@ -316,6 +317,7 @@ function grid:draw(xRoot, yRoot, width, height, children)
 				carriagePos = carriagePos + self.gridLayout.rowSpacing + h
 			end
 		end
+		return width, carriagePos
 	elseif autoCols then--one element per width, rows spaced
 		local carriagePos = 0
 		local row = 1
@@ -355,6 +357,7 @@ function grid:draw(xRoot, yRoot, width, height, children)
 				row = row + 1
 			end
 		end
+		return width, carriagePos
 	elseif autoRows then--flow the elements freely vertically, space columns according to layout
 		local carriagePos = 0
 		local row = 1
@@ -407,6 +410,8 @@ function grid:draw(xRoot, yRoot, width, height, children)
 				currentCol = currentCol + 1
 			end
 		end
+
+		return width, carriagePos
 	end
 end
 

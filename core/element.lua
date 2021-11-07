@@ -11,19 +11,21 @@ local scene = require(path.. ".core.scene")
 local currentCanvasID
 
 ---@class Element
-local element = {}
+local element = {
+	typeName = 'HeliumElement'
+}
 element.__index = element
 
 local type,pcall = type,pcall
 setmetatable(element, {
-		__call = function(cls, func, param, w, h, flags)
+		__call = function(cls, func, param, w, h, id, flags)
 			local self
 			
 			--Make the object inherit class
 			self = setmetatable({}, element)
 			self.parentFunc = func
 
-			self:new(param,nil, w, h, flags)
+			self:new(param,nil, w, h, id, flags)
 			self:createProxies()
 
 			---@type Element
@@ -33,10 +35,11 @@ setmetatable(element, {
 
 --Control functions
 --The new function that should be used for element creation
-function element:new(param, immediate, w, h, flags)
+function element:new(param, immediate, w, h, id, flags)
 	self.parameters = {}
 	self.baseParams = param
 	self.flags = flags or {}
+	self.id = id
 
 	--Internal state callbacks
 	self.callbacks = {}

@@ -21,6 +21,7 @@ function row:draw(x, y, width, height, children, hpad, vpad, alignX)
 			carriagePos = carriagePos + w + hpad
 		end
 	end
+	return carriagePos, height
 end
 
 return row
