@@ -28,40 +28,41 @@ local orig = {
 	keyreleased = love.handlers['keyreleased'],
 	mousemoved = love.handlers['mousemoved']
 }
-
-love.handlers['mousepressed'] = function(x, y, btn, d, e, f)
-	if not input.eventHandlers.mousepressed(x, y, btn, d, e ,f) then
-		orig.mousepressed(x, y, btn, d, e, f)
+if helium.conf.AUTO_INPUT_SUB then
+	love.handlers['mousepressed'] = function(x, y, btn, d, e, f)
+		if not input.eventHandlers.mousepressed(x, y, btn, d, e ,f) then
+			orig.mousepressed(x, y, btn, d, e, f)
+		end
 	end
-end
-love.handlers['mousereleased'] = function(x, y, btn, d, e, f)
-	if not input.eventHandlers.mousereleased(x, y, btn, d, e ,f) then
-		orig.mousereleased(x, y, btn, d, e, f)
+	love.handlers['mousereleased'] = function(x, y, btn, d, e, f)
+		if not input.eventHandlers.mousereleased(x, y, btn, d, e ,f) then
+			orig.mousereleased(x, y, btn, d, e, f)
+		end
 	end
-end
-love.handlers['keypressed'] = function(key, b, c, d, e, f)
-	if not input.eventHandlers.keypressed(key, b, c, d, e, f) then
-		orig.keypressed(key, b, c, d, e, f)
+	love.handlers['keypressed'] = function(key, b, c, d, e, f)
+		if not input.eventHandlers.keypressed(key, b, c, d, e, f) then
+			orig.keypressed(key, b, c, d, e, f)
+		end
 	end
-end
-love.handlers['keyreleased'] = function(key, b, c, d, e, f)
-	if not input.eventHandlers.keyreleased(key, b, c, d, e, f) then
-		orig.keyreleased(key, b, c, d, e, f)
+	love.handlers['keyreleased'] = function(key, b, c, d, e, f)
+		if not input.eventHandlers.keyreleased(key, b, c, d, e, f) then
+			orig.keyreleased(key, b, c, d, e, f)
+		end
 	end
-end
-love.handlers['textinput'] = function(text, b, c, d, e, f)
-	if not input.eventHandlers.textinput(text, b, c, d, e, f) then
-		orig.textinput(text, b, c, d, e, f)
+	love.handlers['textinput'] = function(text, b, c, d, e, f)
+		if not input.eventHandlers.textinput(text, b, c, d, e, f) then
+			orig.textinput(text, b, c, d, e, f)
+		end
 	end
-end
-love.handlers['mousemoved'] = function(x, y, dx, dy, e, f)
-	if not input.eventHandlers.mousemoved(x, y, dx, dy, e, f) then
-		orig.mousemoved(x, y, dx, dy, e, f)
+	love.handlers['mousemoved'] = function(x, y, dx, dy, e, f)
+		if not input.eventHandlers.mousemoved(x, y, dx, dy, e, f) then
+			orig.mousemoved(x, y, dx, dy, e, f)
+		end
 	end
-end
-love.handlers['filedropped'] = function(file, y, dx, dy, e, f)
-	if not input.eventHandlers.filedropped(file, y, dx, dy, e, f) then
-		orig.filedropped(file, y, dx, dy, e, f)
+	love.handlers['filedropped'] = function(file, y, dx, dy, e, f)
+		if not input.eventHandlers.filedropped(file, y, dx, dy, e, f) then
+			orig.filedropped(file, y, dx, dy, e, f)
+		end
 	end
 end
 

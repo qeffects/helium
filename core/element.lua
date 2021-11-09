@@ -27,7 +27,11 @@ setmetatable(element, {
 
 			self:new(param,nil, w, h, id, flags)
 			self:createProxies()
-
+			local cx = context.getContext()
+			if cx then
+				self:setup()
+				self.settings.isSetup = true
+			end
 			---@type Element
 			return self
 		end
@@ -119,9 +123,11 @@ function element:sizeChange(i, v)
 	end
 
 	if self.callbacks.onSizeChange then
+		self.context:set()
 		for i, cb in ipairs(self.callbacks.onSizeChange) do
 			cb(self.view.w, self.view.h)
 		end
+		self.context:unset()
 	end
 end
 
@@ -134,33 +140,41 @@ function element:posChange(i, v)
 	end
 	
 	if self.callbacks.onPosChange then
+		self.context:set()
 		for i, cb in ipairs(self.callbacks.onPosChange) do
 			cb(self.view.x, self.view.y)
 		end
+		self.context:unset()
 	end
 end
 
 function element:onUpdate()
 	if self.callbacks.onUpdate then
+		self.context:set()
 		for i, cb in ipairs(self.callbacks.onUpdate) do
 			cb()
 		end
+		self.context:unset()
 	end
 end
 
 function element:onLoad()
 	if self.callbacks.onLoad then
+		self.context:set()
 		for i, cb in ipairs(self.callbacks.onLoad) do
 			cb()
 		end
+		self.context:unset()
 	end
 end
 
 function element:onDestroy()
 	if self.callbacks.onDestroy then
+		self.context:set()
 		for i, cb in ipairs(self.callbacks.onDestroy) do
 			cb()
 		end
+		self.context:unset()
 	end
 end
 
@@ -221,6 +235,11 @@ end
 function element:setParam(p)
 	self.baseParams = p
 	self.context:bubbleUpdate()
+end
+
+--Returns the proxied parameter table
+function element:getParam()
+	return self.parameters
 end
 
 function element:setSize(w, h)
@@ -440,6 +459,10 @@ end
 
 function element:getSize()
 	return self.view.w, self.view.h
+end
+
+function element:getView()
+	return self.view.x, self.view.y, self.view.w, self.view.h
 end
 
 ---Destroys this element

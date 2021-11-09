@@ -38,6 +38,9 @@ function context.new(elem)
 end
 
 function context:bubbleUpdate()
+	if self.element.settings.pendingUpdate then
+		return;
+	end
     self.element.settings.pendingUpdate  = true
     self.element.settings.needsRendering = true
 

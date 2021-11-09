@@ -22,7 +22,7 @@ return function (base)
 				return f
 			end,
 			__newindex = function(t, index, val)
-				if fakeBase[index] ~= val then
+				if not (fakeBase[index] == val) then
 					fakeBase[index] = val
 					activeContext:bubbleUpdate()
 					for i, e in ipairs(callbacks) do

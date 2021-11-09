@@ -54,8 +54,9 @@ function collection:remove(index)
     else
         error("Can't index with this variable type", -1)
     end
-
-    self.nameMap[strInd] = nil
+    if self.nameMap[strInd] then
+        self.nameMap[strInd] = nil
+    end
     self.instanceMap[el] = nil
     table.remove(self.setArray, numInd)
     el:destroy()
@@ -76,6 +77,12 @@ function collection:getIndex(index)
         return self:find(index)
     elseif type(index) == "string" then
         return self:find(self.nameMap[index])
+    end
+end
+
+function collection:pop()
+    if #self.setArray > 0 then
+        self:remove(#self.setArray)
     end
 end
 

@@ -19,8 +19,9 @@ function atlases.create()
 	local self = {
 		atlases = {}
 	}
-	self.atlases[1] = atlas.new(sw*1.10, sh*1.10)
-	self.atlases[2] = atlas.new(sw*1.10, sh*1.10)
+	local as = helium.conf.ATLAS_SIZE_MULT
+	self.atlases[1] = atlas.new(sw*as, sh*as)
+	self.atlases[2] = atlas.new(sw*as, sh*as)
 
 	return setmetatable(self, atlases)
 end
@@ -54,8 +55,10 @@ function atlases:assign(element)
 		local speedCoef = avg/selfRenderTime
 	
 		if not ((areaCoef+speedCoef)>coefficient) then
-			return 
+			return;
 		end
+	else
+		return;
 	end
 
 	local elW = element.view.w
