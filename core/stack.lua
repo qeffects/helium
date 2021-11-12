@@ -67,8 +67,8 @@ function context:set()
         self.absX      = self.view.x
 		self.absY      = self.view.y
 		
-		self.offsetX   = 0
-		self.offsetY   = 0
+		self.offsetX   = self.view.lgTranslateX + self.view.x
+		self.offsetY   = self.view.lgTranslateY + self.view.y
 
         activeContext  = self
     end
@@ -174,7 +174,7 @@ function context:normalizePos(x, y)
 		yPX = self.element.view.h * y
 	end
 
-	return (xPX or x) + self.absX + self.view.lgTranslateX, (yPX or y) + self.absY + self.view.lgTranslateY
+	return (xPX or x) + self.offsetX, (yPX or y) + self.offsetY
 end
 
 function context:normY(y)
