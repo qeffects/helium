@@ -174,7 +174,7 @@ function context:normalizePos(x, y)
 		yPX = self.element.view.h * y
 	end
 
-	return (xPX or x) + self.absX, (yPX or y) + self.absY
+	return (xPX or x) + self.view.absX, (yPX or y) + self.view.absY
 end
 
 function context:normY(y)

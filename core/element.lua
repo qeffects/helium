@@ -83,6 +83,8 @@ function element:new(param, immediate, w, h, id, flags)
 		h = h or 10,
 		minW = w or 0,
 		minH = h or 0,
+		absX = 0,
+		absY = 0,
 	}
 
 	self.size = setmetatable({}, {__index = function(t, index)
@@ -336,6 +338,7 @@ function element:externalRender()
 	end
 
 	if self.settings.needsRendering then
+		self.view.absX, self.view.absY = lg.transformPoint(self.view.x, self.view.y)
 		if self.settings.hasCanvas then
 			setCanvas(self.canvas)
 			--need scissors
