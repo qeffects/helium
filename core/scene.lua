@@ -25,7 +25,9 @@ function scene.new(cached)
 		atlas = cached and atlas.create() or nil,
 		cached = cached or false,
 		subscriptions = {},
-		buffer = {}
+		buffer = {},
+		scaleX = 1,
+		scaleY = 1,
 	}
 	local newScene = setmetatable(self, scene)
 	newScene:activate()
@@ -45,6 +47,18 @@ function scene.bench()
 		helium.setBench((love.timer.getTime()-startTime)/5)
 	elseif skipframes>0 then
 		skipframes = skipframes - 1
+	end
+end
+
+function scene:setPixelScale(x, y)
+	if self.scaleX == x and self.scaleY == (y or x) then
+		return
+	end
+	self.scaleX = x
+	self.scaleY = y or x
+
+	for i, elem in ipairs(self.buffer) do
+		elem.context:scaleChanged()
 	end
 end
 
@@ -97,9 +111,29 @@ end
 
 function scene:drawAtlases(x, y)
 	if self.atlas then
+		love.graphics.push()
 		local aw = self.atlas.atlases[1].canvas:getWidth()
+		local ah = self.atlas.atlases[1].canvas:getHeight()
+		love.graphics.print('Atlas 1:', x, y)
+		love.graphics.print('Atlas 2:', x+aw*0.45, y)
+		love.graphics.translate(0,20)
+		love.graphics.scale(0.45)
 		love.graphics.draw(self.atlas.atlases[1].canvas, x, y)
 		love.graphics.draw(self.atlas.atlases[2].canvas, x+aw, y)
+		love.graphics.rectangle('line', x, y, aw, ah)
+		love.graphics.rectangle('line', x+aw, y, aw, ah)
+		love.graphics.pop()
+	end
+end
+
+function scene:drawInputBoxes()
+	for i, list in pairs(self.subscriptions) do
+		for ind, sub in ipairs(list) do
+			if sub.x then
+				love.graphics.setColor(1,1,0)
+				love.graphics.rectangle('line', sub.x, sub.y, sub.w, sub.h)
+			end
+		end
 	end
 end
 

@@ -118,7 +118,7 @@ function layout:draw()
 	local stack = self.stack
 	local children = stack:stopDeferingChildren()
 	local height, width, x, y, _, marginV, marginH
-	local maxW, maxH = stack:normalizeSize(1,1)
+	local maxW, maxH = stack:normalizeSizeUnscaled(1,1)
 
 	if self.vars.offTop and self.vars.offBot then
 		marginV = stack:normY(self.vars.offTop) + stack:normY(self.vars.offBot)

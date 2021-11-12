@@ -51,6 +51,7 @@ end
 
 function context:set()
     if activeContext then
+		local scaleX, scaleY = helium.scene.activeScene.scaleX, helium.scene.activeScene.scaleY
         if not self.parentCtx and activeContext~=self then
             self.parentCtx = activeContext
             activeContext.childrenContexts[#activeContext.childrenContexts+1] = self
@@ -59,17 +60,36 @@ function context:set()
         self.absX      = self.parentCtx.absX + self.view.x
         self.absY      = self.parentCtx.absY + self.view.y
 		
-		self.offsetX   = self.view.x +self.parentCtx.offsetX
-		self.offsetY   = self.view.y +self.parentCtx.offsetY
+		if self.parentCtx.element.settings.hasCanvas then
+			self.offsetX   = self.parentCtx.offsetX + self.view.x * scaleX
+			self.offsetY   = self.parentCtx.offsetY + self.view.y * scaleY
+		else
+			self.offsetX   = self.view.offsetX
+			self.offsetY   = self.view.offsetY
+		end
 
         activeContext  = self
     else
         self.absX      = self.view.x
 		self.absY      = self.view.y
 		
-		self.offsetX   = self.view.lgTranslateX + self.view.x
-		self.offsetY   = self.view.lgTranslateY + self.view.y
+		self.offsetX   = self.view.offsetX
+		self.offsetY   = self.view.offsetY
 
+        activeContext  = self
+    end
+end
+
+
+function context:setLogic()
+    if activeContext then
+        if not self.parentCtx and activeContext~=self then
+            self.parentCtx = activeContext
+            activeContext.childrenContexts[#activeContext.childrenContexts+1] = self
+        end
+
+        activeContext  = self
+    else
         activeContext  = self
     end
 end
@@ -174,7 +194,7 @@ function context:normalizePos(x, y)
 		yPX = self.element.view.h * y
 	end
 
-	return (xPX or x) + self.offsetX, (yPX or y) + self.offsetY
+	return ((xPX or x) + self.offsetX), ((yPX or y) + self.offsetY)
 end
 
 function context:normY(y)
@@ -208,7 +228,21 @@ function context:normalizeSize(w, h)
 		hPX = self.element.view.h * h
 	end
 
-	return wPX or w, hPX or h
+	return (wPX or w)*helium.scene.activeScene.scaleX, (hPX or h)*helium.scene.activeScene.scaleY
+end
+
+function context:normalizeSizeUnscaled(w, h)
+	local wPX, hPX
+
+	if w<=1 and w~=0 then
+		wPX = self.element.view.w * w
+	end
+
+	if h<=1 and h~=0 then
+		hPX = self.element.view.h * h
+	end
+
+	return (wPX or w), (hPX or h)
 end
 
 function context:findAttachedState(name)
@@ -221,7 +255,21 @@ function context:findAttachedState(name)
 	end
 end
 
+local scalePropogator = function(elem)
+	elem.element:forceRerender()
+	elem:scaleChanged()
+	elem:sizeChanged()
+	elem:posChanged(false)
+end
+
 --To be used by the element
+function context:scaleChanged()
+	self.element:forceRerender()
+	self:sizeChanged()
+	self:posChanged(false)
+	self:doOnEveryChild(scalePropogator)
+end
+
 function context:sizeChanged()
 	if self.parentCtx then
 		self.absX      = self.parentCtx.absX + self.view.x
@@ -238,7 +286,8 @@ local posPropogator = function(elem)
 	elem:posChanged()
 end
 
-function context:posChanged()
+function context:posChanged(onevery)
+	onevery = not onevery==nil and onevery or true
 	if self.parentCtx then
 		self.absX      = self.parentCtx.absX + self.view.x
 		self.absY      = self.parentCtx.absY + self.view.y
@@ -247,7 +296,9 @@ function context:posChanged()
 		self.absY      = self.view.y
 	end
 
-	self:doOnEveryChild(posPropogator)
+	if onevery then
+		self:doOnEveryChild(posPropogator)
+	end
 
 	self.events:push('poschange')
 end

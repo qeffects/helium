@@ -83,8 +83,10 @@ function element:new(param, immediate, w, h, id, flags)
 		h = h or 10,
 		minW = w or 0,
 		minH = h or 0,
-		lgTranslateX = 0,
-		lgTranslateY = 0,
+		offsetX = 0,
+		offsetY = 0,
+		scaledX = 0,
+		scaledY = 0,
 	}
 
 	self.size = setmetatable({}, {__index = function(t, index)
@@ -106,6 +108,11 @@ function element:reassignCanvas()
 	self.context:bubbleUpdate()
 end
 
+function element:forceRerender()
+	self.settings.pendingUpdate = true
+	self.settings.needsRendering = true
+end
+
 function element:sizeChange(i, v)
 	local increase = self.baseView[i] < v
 
@@ -125,7 +132,7 @@ function element:sizeChange(i, v)
 	end
 
 	if self.callbacks.onSizeChange then
-		self.context:set()
+		self.context:setLogic()
 		for i, cb in ipairs(self.callbacks.onSizeChange) do
 			cb(self.view.w, self.view.h)
 		end
@@ -142,7 +149,7 @@ function element:posChange(i, v)
 	end
 	
 	if self.callbacks.onPosChange then
-		self.context:set()
+		self.context:setLogic()
 		for i, cb in ipairs(self.callbacks.onPosChange) do
 			cb(self.view.x, self.view.y)
 		end
@@ -152,7 +159,7 @@ end
 
 function element:onUpdate()
 	if self.callbacks.onUpdate then
-		self.context:set()
+		self.context:setLogic()
 		for i, cb in ipairs(self.callbacks.onUpdate) do
 			cb()
 		end
@@ -162,7 +169,7 @@ end
 
 function element:onLoad()
 	if self.callbacks.onLoad then
-		self.context:set()
+		self.context:setLogic()
 		for i, cb in ipairs(self.callbacks.onLoad) do
 			cb()
 		end
@@ -172,7 +179,7 @@ end
 
 function element:onDestroy()
 	if self.callbacks.onDestroy then
-		self.context:set()
+		self.context:setLogic()
 		for i, cb in ipairs(self.callbacks.onDestroy) do
 			cb()
 		end
@@ -313,10 +320,12 @@ end
 
 local lg = love.graphics
 function element:externalRender()
+	local scaleX, scaleY = helium.scene.activeScene.scaleX, helium.scene.activeScene.scaleY
 	if not self.settings.active then
 		return
 	end
 
+	local oldScX, oldScY, oldScW, oldScH = lg.getScissor()
 	local cnvs = getCanvas()
 	love.graphics.push('all')
 
@@ -338,7 +347,12 @@ function element:externalRender()
 	end
 
 	if self.settings.needsRendering then
-		self.view.lgTranslateX, self.view.lgTranslateY = lg.transformPoint(0,0)
+		local sx, sy = lg.transformPoint(0, 0)
+		self.view.offsetX, self.view.offsetY = lg.transformPoint(self.view.x, self.view.y)
+
+		self.view.scaledX  = self.view.offsetX - sx
+		self.view.scaledY  = self.view.offsetY - sy
+		
 		if self.settings.hasCanvas then
 			setCanvas(self.canvas)
 			--need scissors
@@ -354,14 +368,20 @@ function element:externalRender()
 			self.settings.needsRendering = false
 			lg.pop()
 		else
+			local w, h = self.view.w, self.view.h
+			if not cnvs then
+				w = w*scaleX
+				h = h*scaleY
+			end
+			lg.push()
 			lg.translate(self.view.x, self.view.y)
 			local x, y = lg.transformPoint(0, 0)
-			lg.intersectScissor(x, y, self.view.w, self.view.h)
-			
+			lg.intersectScissor(x, y, w, h)
 			self:renderWrapper()
+			lg.pop()
 		end
 	end
-	lg.setScissor()
+	lg.setScissor(oldScX, oldScY, oldScW, oldScH)
 
 	setCanvas(cnvs)
 
@@ -373,7 +393,6 @@ function element:externalRender()
 		lg.setBlendMode('alpha','alphamultiply')
 	end
 
-	lg.setScissor()
 	love.graphics.pop()
 	currentCanvasID = oldCanvasId
 end
@@ -403,6 +422,8 @@ function element:externalUpdate()
 	end
 
 	if self.deferResize then
+		self.settings.pendingUpdate = true
+		self.settings.needsRendering = true
 		self.context:sizeChanged()
 		if self.settings.hasCanvas then 
 			scene.activeScene.atlas:unassign(self)
