@@ -8,9 +8,9 @@ local context = require(path.. ".core.stack")
 return function (name, callback)
 	local activeContext = context.getContext()
 
-	if context.element[name] then
+	if activeContext.element[name] then
 		error('callback with name '..name..' would interfere with internal fields')
 	end
 	
-	context.element[name] = callback
+	activeContext.element[name] = callback
 end
