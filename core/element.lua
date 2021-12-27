@@ -1,382 +1,464 @@
---[[ Element superclass ]]
---[[ Love is currently a hard dependency, although not in many places ]]
+--[[--------------------------------------------------
+	Helium UI by qfx (qfluxstudios@gmail.com)
+	Copyright (c) 2021 Elmārs Āboliņš
+	https://github.com/qeffects/helium
+----------------------------------------------------]]
 local path = string.sub(..., 1, string.len(...) - string.len(".core.element"))
 local helium = require(path .. ".dummy")
+local context = require(path.. ".core.stack")
+local scene = require(path.. ".core.scene")
 
----@class context
-local context = {}
-context.__index = context
+local currentCanvasID
 
-local activeContext
-
----@param elem element
-function context.new(elem)
-	local ctx = setmetatable({view = elem.view, element = elem, childrenContexts={}}, context)
-
-	return ctx
-end
-
-function context:bubbleUpdate()
-	self.element.settings.pendingUpdate  = true
-	self.element.settings.needsRendering = true
-
-	if self.parentCtx and self.parentCtx~=self then
-		self.parentCtx:bubbleUpdate()
-	end
-end
-
-function context:set()
-	if activeContext then
-		if not self.parentCtx and activeContext~=self then
-			self.parentCtx = activeContext
-			activeContext.childrenContexts[#activeContext.childrenContexts] = self
-		end
-
-		self.absX      = self.parentCtx.absX + self.view.x
-		self.absY      = self.parentCtx.absY + self.view.y
-
-		activeContext  = self
-	else
-		self.absX      = self.view.x
-		self.absY      = self.view.y
-
-		activeContext  = self
-	end
-end
-
-function context:unset()
-	if self.parentCtx then
-		activeContext = self.parentCtx
-	else
-		activeContext = nil
-	end
-end
-
-function context:destroy()
-	self.elem:undraw()
-	for i=1,#self.childrenContexts do
-		self.childrenContexts[i]:destroy()
-	end
-end
-
----@class element
+---@class Element
 local element = {}
 element.__index = element
 
-function element.newProxy(base)
-	local base = base or {}
-	local fakeBase = {}
-	local activeContext = activeContext
-	return setmetatable({},{
-			__index = function(t, index)
-				return fakeBase[index] or base[index]
-			end,
-			__newindex = function(t, index, val)
-				if fakeBase[index] ~= val then
-					fakeBase[index] = val
-					activeContext:bubbleUpdate()
-				end
-			end
-		})
-end
-
 local type,pcall = type,pcall
-setmetatable(element,{
-		__call = function(cls, ...)
+setmetatable(element, {
+		__call = function(cls, func, param, w, h, flags)
 			local self
-			local func, loader, w, h, param = ...
 			
+			--Make the object inherit class
 			self = setmetatable({}, element)
 			self.parentFunc = func
 
-			if loader then
-				local function f(newFunc)
-					self:reLoader(newFunc)
-				end
-				loader(f)
-			end
+			self:new(param,nil, w, h, flags)
+			self:createProxies()
 
-			self:new(w, h, param)
-
+			---@type Element
 			return self
 		end
 	})
 
---Dummy functions
-function element:renderer() print('no renderer') end
-
 --Control functions
 --The new function that should be used for element creation
-function element:new(w, h, param)
-	local dimensions
-	--save the parameters
+function element:new(param, immediate, w, h, flags)
 	self.parameters = {}
-
-	--The element canvas
 	self.baseParams = param
+	self.flags = flags or {}
+
+	--Internal state callbacks
+	self.callbacks = {}
 
 	--Internal settings
 	self.settings = {
 		isSetup              = false,
 		pendingUpdate        = true,
 		needsRendering       = true,
+		active               = true,
+		remove               = false,
+		--Unused for now?
 		calculatedDimensions = true,
+		--Is this the first render
 		firstDraw            = true,
-		--Stabilize the internal canvas, draw it twice on first load
-		stabilize            = true,
-		inserted             = false
+		--Has it been inserted in to the buffer
+		inserted             = false,
+		--Whether this element is created and drawn instantly (and doesn't need a canvas)
+		immediate            = immediate or false,
+		--Whether this element has a canvas assigned
+		hasCanvas            = false,
+		--Which canvas is it assigned to
+		currentCanvasIndex   = nil,
+		--Current test render passes to be benchmarked
+		testRenderPasses     = 20,
+		--
+		failedCanvas         = false
 	}
 
-	self.baseState = {}
+	self.renderBench = {
 
+	}
 	self.baseView = {
 		x = 0,
 		y = 0,
 		w = w or 10,
 		h = h or 10,
+		minW = w or 0,
+		minH = h or 0,
 	}
 
-	self.view = setmetatable({},{
+	self.size = setmetatable({}, {__index = function(t, index)
+		return self.baseView[index]
+	end,})
+
+	self.view = self.baseView
+end
+
+function element:reassignCanvas()
+	self.settings.failedCanvas = false
+	self.settings.hasCanvas = false
+
+	self.canvas = nil
+	self.quad = nil
+	self.interQuad = nil
+	self.deferResize = nil
+
+	self.context:bubbleUpdate()
+end
+
+function element:sizeChange(i, v)
+	local increase = self.baseView[i] < v
+
+	if i == 'w' then
+		self.baseView.w = math.max(self.baseView.minW, v)
+	else
+		self.baseView.h = math.max(self.baseView.minH, v)
+	end
+	
+	--defer resize
+	if self.deferResize then
+		if not self.deferResize.increased then
+			self.deferResize.increased = increase
+		end
+	else
+		self.deferResize = { increased = increase }
+	end
+
+	if self.callbacks.onSizeChange then
+		for i, cb in ipairs(self.callbacks.onSizeChange) do
+			cb(self.view.w, self.view.h)
+		end
+	end
+end
+
+function element:posChange(i, v)
+	self.baseView[i] = v
+		--defer resize
+
+	if not self.deferRepos then
+		self.deferRepos = true
+	end
+	
+	if self.callbacks.onPosChange then
+		for i, cb in ipairs(self.callbacks.onPosChange) do
+			cb(self.view.x, self.view.y)
+		end
+	end
+end
+
+function element:onUpdate()
+	if self.callbacks.onUpdate then
+		for i, cb in ipairs(self.callbacks.onUpdate) do
+			cb()
+		end
+	end
+end
+
+function element:onLoad()
+	if self.callbacks.onLoad then
+		for i, cb in ipairs(self.callbacks.onLoad) do
+			cb()
+		end
+	end
+end
+
+function element:onDestroy()
+	if self.callbacks.onDestroy then
+		for i, cb in ipairs(self.callbacks.onDestroy) do
+			cb()
+		end
+	end
+end
+
+function element:createProxies()
+	self.view = setmetatable({}, {
 		__index = function(t, index)
 			return self.baseView[index]
 		end,
 		__newindex = function(t, index, val)
 			if self.baseView[index] ~= val then
-				self.baseView[index] = val
-				self.context:bubbleUpdate()
-				self:updateInputCtx()
-				if self.view.onChange then
-					self.view.onChange()
+				if index=='w' or index=='h' then
+					self:sizeChange(index, val)
+				else
+					self:posChange(index, val)
 				end
+				self.context:bubbleUpdate()
+			end
+		end
+	})
+
+	self.parameters = setmetatable({}, {
+		__index = function(t, index)
+			return self.baseParams[index]
+		end,
+		__newindex = function(t, index, val)
+			if self.baseParams[index] ~= val then
+				self.baseParams[index] = val
+				self.context:bubbleUpdate()
 			end
 		end
 	})
 
 	--Context makes sure element internals don't have to worry about absolute coordinates
-	self.inputContext = helium.input.newContext(self)
 	self.context = context.new(self)
-
-	self.classlessFuncs = {}
-		
-	--Allows manipulation of the arbitrary state
-	self.classlessFuncs.getState = function ()
-		return self.state
-	end
-	
-	--Allows manipulation of rendering width height, relative X and relative Y
-	self.classlessFuncs.getView = function ()
-		self.settings.restrictView = true
-		return self.view
-	end
-
-	self:setup()
-	self.settings.isSetup = true
 end
 
-function element:updateInputCtx()
-	self.inputContext:update()
-	if self.settings.canvasW then
-		if self.settings.canvasW < self.view.w or self.settings.canvasH < self.view.h then
-			self.settings.canvasW = self.view.w*1.25
-			self.settings.canvasH = self.view.h*1.25
-
-			self.canvas = love.graphics.newCanvas(self.view.w*1.25, self.view.h*1.25)
-		end
-	
-		self.quad = love.graphics.newQuad(0, 0, self.view.w, self.view.h, self.settings.canvasW, self.settings.canvasH)
-	end
+local selfRenderTime
+function element.setBench(time)
+	selfRenderTime = time
 end
 
+local newCanvas, newQuad = love.graphics.newCanvas, love.graphics.newQuad
+function element:createCanvas()
 
---Hotswapping code
+	self.canvas, self.quad, self.settings.currentCanvasIndex = scene.activeScene.atlas:assign(self)
 
-function element:reLoader(newFunc)
-	self.inputContext:set()
-	self.context:set()
-	self.inputContext:destroy()
-
-	self.parentFunc = newFunc
-
-	if type(self.parentFunc)=='function' then
-		self.renderer = self.parentFunc(self.parameters,self.state,self.view)
-	else
-		self.renderer = self.parentFunc
+	if not self.canvas then
+		self.settings.failedCanvas = true
+		self.settings.hasCanvas = false
+		return
 	end
 
-	self.context:unset()
-	self.inputContext:unset()
+	self.settings.canvasW = self.view.w
+	self.settings.canvasH = self.view.h
+	self.settings.hasCanvas = true
+end
+
+function element:setParam(p)
+	self.baseParams = p
 	self.context:bubbleUpdate()
 end
 
-local newCanvas,newQuad = love.graphics.newCanvas,love.graphics.newQuad
+function element:setSize(w, h)
+	local w, h = w or self.view.w, h or self.view.h 
+
+	self.view.w = math.max(w, self.view.minW)
+	self.view.h = math.max(h, self.view.minH)
+end
+
+function element:setMinSize(w, h)
+	self.view.minW = w or self.view.minW
+	self.view.minH = h or self.view.minH
+	self.view.w = math.max(self.view.w, w, self.view.minW)
+	self.view.h = math.max(self.view.h, h, self.view.minH)
+end
+
+local dummy = function() end
+--Immediate mode code(don't call directly)
+function element.immediate(param, func, x, y, w, h)
+	--Need to capture this by the current parent context
+	--Todo:
+	local ctx = context.getContext()
+	if ctx then
+		local self = setmetatable({}, element)
+		self = self:new(param, true)
+	else
+		error("Can't render immediate outside of persistent")
+	end
+end
+
 --Called once dimensions are validated
 function element:setup()
-	self.state = setmetatable({},{
-			__index = function(t, index)
-				return self.baseState[index]
-			end,
-			__newindex = function(t, index, val)
-				if self.baseState[index] ~= val then
-					self.baseState[index] = val
-					if self.baseState.onUpdate then
-						self.baseState.onUpdate()
-					end
-					self.context:bubbleUpdate()
-				end
-			end
-		})
-
-	self.parameters = setmetatable({},{
-			__index = function(t, index)
-				return self.baseParams[index]
-			end,
-			__newindex = function(t, index, val)
-				if self.baseParams[index] ~= val then
-					self.baseParams[index] = val
-					self.context:bubbleUpdate()
-				end
-			end
-		})
-
-
-	self.settings.canvasW = self.view.w*1.25
-	self.settings.canvasH = self.view.h*1.25
-
-	self.canvas = newCanvas(self.view.w*1.25, self.view.h*1.25)
-	self.quad = newQuad(0, 0, self.view.w, self.view.h, self.view.w*1.25, self.view.h*1.25)
-
 	self.context:set()
-	self.inputContext:set()	
-	self.renderer = self.parentFunc(self.parameters,self.state,self.view)
-	self.inputContext:unset()
-	self.inputContext:afterLoad()
+	self.renderer = self.parentFunc(self.parameters, self.size)
 	self.context:unset()
 
 	self.settings.isSetup = true
+	self:onLoad()
 end
 
-local setColor,rectangle,setFont,printf = love.graphics.setColor,love.graphics.rectangle,love.graphics.setFont,love.graphics.printf
-function element:classlessRender()
+local setColor, rectangle, setFont, printf = love.graphics.setColor, love.graphics.rectangle, love.graphics.setFont, love.graphics.printf
+local calcT
 
-	self.inputContext:set()
-	if type(self.renderer)=='function' then
-		love.graphics.push()
-		love.graphics.origin()
-		local status, err = pcall(self.renderer)
-		love.graphics.pop()
-
-		if not status then
-			if helium.conf.HARD_ERROR then
-				error(status)
-			end
-			setColor(1,0,0)
-			rectangle('line',0,0,self.view.w,self.view.h)
-			setColor(1,1,1)
-			printf("Error: "..err,0,0,self.view.w)
-		end
-
-	elseif type(self.renderer)=='string' then
-		if helium.conf.HARD_ERROR then
-			error(self.renderer)
-		end
-		setColor(1,0,0)
-		rectangle('line',0,0,self.view.w,self.view.h)
-		setColor(1,1,1)
-		printf("Error: "..self.renderer,0,0,self.view.w)
+function element:internalRender()
+	if self.settings.testRenderPasses > 0 and selfRenderTime and not helium.conf.MANUAL_CACHING then
+		calcT = love.timer.getTime()
 	end
 
-	self.inputContext:unset()
-end
+	self.renderer()
 
-local getCanvas,setCanvas,clear = love.graphics.getCanvas,love.graphics.setCanvas,love.graphics.clear
-function element:renderWrapper()
-	local cnvs = getCanvas()
-	setCanvas({self.canvas, stencil = true})
-
-	clear()
-
-	if self.parameters then
-		self:classlessRender()
-		self.settings.pendingUpdate = false
+	if self.settings.testRenderPasses > 0 and selfRenderTime and not helium.conf.MANUAL_CACHING then
+		self.settings.testRenderPasses = self.settings.testRenderPasses-1
+		local selfTime = love.timer.getTime()-calcT
+		table.insert(self.renderBench, selfTime)
 	end
-
-	setCanvas(cnvs)
 end
 
 local draw = love.graphics.draw
-function element:externalRender()
+local getCanvas, setCanvas, clear = love.graphics.getCanvas, love.graphics.setCanvas, love.graphics.clear
+function element:renderWrapper()
 	self.context:set()
 
-	if self.settings.stabilize and not self.settings.needsRendering then
-		self.settings.stabilize = false
-		self.settings.needsRendering = true
+	if self.parameters then
+		self:internalRender()
 	end
-
-	if self.settings.needsRendering then
-		self:renderWrapper()
-		self.settings.needsRendering = false
-	end
-
-	setColor(1,1,1)
-	draw(self.canvas, self.quad, self.view.x, self.view.y)
 
 	self.context:unset()
 end
 
-function element:externalUpdate()
-	if self.settings.pendingUpdate then
-		if self.updater then
-			self:updater()
-		end
+local lg = love.graphics
+function element:externalRender()
+	if not self.settings.active then
+		return
+	end
 
+	local cnvs = getCanvas()
+	love.graphics.push('all')
+
+	if not self.settings.isSetup then
+		self:setup()
+		self.settings.isSetup = true
+	end
+
+	local oldCanvasId
+	if self.settings.hasCanvas then
+		if self.settings.currentCanvasIndex == currentCanvasID then
+			--problem lol
+			self.settings.renderingParentCanvasIndex = currentCanvasID
+			self:reassignCanvas()
+		else
+			oldCanvasId = currentCanvasID
+			currentCanvasID = self.settings.currentCanvasIndex
+		end
+	end
+
+	if self.settings.needsRendering then
+		if self.settings.hasCanvas then
+			setCanvas(self.canvas)
+			--need scissors
+			local ox, oy, w, h = self.quad:getViewport()
+			lg.push('all')
+			lg.origin()
+			lg.translate(ox, oy)
+			lg.setScissor(ox, oy, w, h)
+			lg.clear(0,0,0,0)
+			
+			self:renderWrapper()
+			
+			self.settings.needsRendering = false
+			lg.pop()
+		else
+			lg.translate(self.view.x, self.view.y)
+			local x, y = lg.transformPoint(0, 0)
+			lg.intersectScissor(x, y, self.view.w, self.view.h)
+			
+			self:renderWrapper()
+		end
+	end
+	lg.setScissor()
+
+	setCanvas(cnvs)
+
+	if self.settings.hasCanvas then
+		lg.translate(self.view.x, self.view.y)
+		setColor(1, 1, 1, 1)
+		lg.setBlendMode('alpha','premultiplied')
+		draw(self.canvas, self.quad, 0, 0)
+		lg.setBlendMode('alpha','alphamultiply')
+	end
+
+	lg.setScissor()
+	love.graphics.pop()
+	currentCanvasID = oldCanvasId
+end
+
+function element:externalUpdate()
+	if not self.settings.active then
+		return
+	end
+	self.context:set()
+	self.context:zIndex()
+	if ((not self.settings.failedCanvas
+		and self.settings.testRenderPasses == 0
+		and scene.activeScene.cached
+		and not helium.conf.MANUAL_CACHING)
+		or self.settings.forcedCanvas)
+		and not self.settings.hasCanvas then
+
+		self:createCanvas()
+
+		self.settings.pendingUpdate = true
+	end
+
+	if self.settings.pendingUpdate then
+		self:onUpdate()
 		self.settings.needsRendering = true
 		self.settings.pendingUpdate  = false
 	end
+
+	if self.deferResize then
+		self.context:sizeChanged()
+		if self.settings.hasCanvas then 
+			scene.activeScene.atlas:unassign(self)
+			self.settings.hasCanvas = false
+			self.settings.testRenderPasses = 15
+			self.canvas = nil
+			self.quad = nil
+			self.interQuad = nil
+			self.deferResize = nil
+		end
+	end
+
+	if self.deferRepos then
+		self.context:posChanged()
+		self.deferRepos = false
+	end
+
+	self.context:unset()
 	return self.settings.remove
 end
 
 local insert = table.insert
---External functions
---Acts as the entrypoint for beginning rendering
+
+---External functions
+---Acts as the entrypoint for beginning rendering
 ---@param x number
 ---@param y number
-function element:draw(x, y)
-	if not self.view.lock then
-		if x then self.view.x = x end
-		if y then self.view.y = y end
+function element:draw(x, y, w, h)
+	if x then self.view.x = x end
+	if y then self.view.y = y end
+	if w then self.view.w = w end
+	if h then self.view.h = h end
+
+	if not self.settings.active then
+		self:redraw()
+	end
+
+	local cx = context.getContext()
+	if cx then
+		if cx:childRender(self) then
+			self:externalUpdate()
+			self:externalRender()
+		end
+	elseif not self.settings.inserted then
+		self.settings.inserted = true
+		insert(scene.activeScene.buffer, self)
 	end
 
 	if self.settings.firstDraw then
 		self.settings.remove = false
-		if self.baseState.onFirstDraw then
-			self.baseState.onFirstDraw()
-		end
 		self.settings.firstDraw = false
-	end
-
-	if not self.settings.isSetup then
-		self.inputContext:unsuspend()
-		self.settings.isSetup = true
-	end
-
-	if activeContext then
-		self:externalRender()
-	elseif not self.settings.inserted then
-		self.settings.inserted = true
-		insert(helium.elementBuffer, self)
+		if cx then
+			self.settings.testRenderPasses = self.settings.testRenderPasses+5
+		end
 	end
 end
 
-function element:undraw()
-	if self.baseState.onDestroy then
-		self.baseState.onDestroy()
-	end
+function element:getSize()
+	return self.view.w, self.view.h
+end
+
+---Destroys this element
+function element:destroy()
 	self.settings.remove  = true
+	self.settings.inserted  = false
+	self.settings.active  = false
 	self.settings.firstDraw = true
 	self.settings.isSetup = false
-	self.inputContext:set()
-	self.inputContext:suspend()
-	self.inputContext:unset()
+	self:onDestroy()
+	self.context:destroy()
+end
+
+function element:redraw()
+	self.settings.active  = true
+	self.context:redraw()
+end
+
+---Stops rendering, updates and draw
+function element:undraw()
+	self.settings.active  = false
+	self.context:undraw()
 end
 
 return element
