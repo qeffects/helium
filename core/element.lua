@@ -282,7 +282,7 @@ end
 --Called once dimensions are validated
 function element:setup()
 	self.context:set()
-	self.renderer = self.parentFunc(self.parameters, self.size)
+	self.renderer = self.parentFunc(self.parameters, self.view)
 	self.context:unset()
 
 	self.settings.isSetup = true
