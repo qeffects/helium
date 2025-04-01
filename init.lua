@@ -1,117 +1,68 @@
 --[[--------------------------------------------------
 	Helium UI by qfx (qfluxstudios@gmail.com)
 	Copyright (c) 2019 Elmārs Āboliņš
-	gitlab.com/project link here
+	https://github.com/qeffects/helium
 ----------------------------------------------------]]
 local path     = ...
-local helium   = require(path..".dummy")
-helium.conf    = require(path..".conf")
-helium.utils   = require(path..".utils")
+
+---@class __HELIUM
+---@field private scene any
+---@field private element any
+---@field private atlas any
+---@field private stack any
+---@field private input any
+local helium   = require(path..'.dummy')
+helium.__index = helium
+
+---@type __HELIUM_CONFIG
+local defaultConf = require(path..".conf")
+helium.conf = {}
+
+if HELIUM_CONFIG then
+	for i, e in pairs(defaultConf) do
+		helium.conf[i] = HELIUM_CONFIG[i] or e
+	end
+else
+	helium.conf = defaultConf
+end
+
+if helium.conf.LOAD_HOOKS then
+	---@type __HELIUM_HOOKS
+	helium.hooks = require(path..'.hooks')
+end
+
+if helium.conf.LOAD_SHELL then
+	---@type __HELIUM_SHELL
+	helium.shell = require(path..'.shell')
+end
+
+if helium.conf.LOAD_LAYOUT then
+	---@type __HELIUM_LAYOUT
+	helium.layout = require(path..'.layout')
+end
+
+helium.core = require(path..'.core')
+
+helium.scene   = require(path..".core.scene")
 helium.element = require(path..".core.element")
 helium.input   = require(path..".core.input")
-helium.loader  = require(path..".loader")
-helium.elementBuffer = {}
-helium.__index = helium
-setmetatable(helium, {__call = function(s,chunk)
-	return function(param,w,h)
-		return helium.element(chunk,nil,w,h,param)
-	end
+helium.stack   = require(path..".core.stack")
+helium.atlas   = require(path..".core.atlas")
+
+function helium.setBench(time)
+	helium.benchNum = time
+	helium.element.setBench(time)
+	helium.atlas.setBench(time)
+end
+
+setmetatable(helium, {__call = function(s, chunk)
+	return setmetatable({
+		draw = function (param, inputs, x, y, w, h)
+		end
+	}, 
+	{__call = function(s, param, w, h, flags)
+		return helium.element(chunk, param, w, h, flags)
+	end,})
 end})
 
-function helium.render()
-	--We don't want any side effects affecting internal rendering
-	love.graphics.reset()
-
-	for i, e in ipairs(helium.elementBuffer) do
-		e:externalRender()
-	end
-end
-
-function helium.update(dt)
-	if helium.conf.HOTSWAP then
-		helium.loader.update(dt)
-	end
-
-	for i = #helium.elementBuffer, 1, -1 do
-		if helium.elementBuffer[i]:externalUpdate() then
-			table.remove(helium.elementBuffer,i)
-		end
-	end
-end
-
---[[
-	A user doesn't have to use this particular love.run
-
-	helium.render()
-	helium.update(dt)
-
-	Need to be called either through love.update and love.draw respectively
-	or put in to your custom love.run
-
-	And for inputs to work the love.event part needs to look something like this:
-
-	for name, a,b,c,d,e,f in love.event.poll() do
-		if name == "quit" then
-			if not love.quit or not love.quit() then
-				return a
-			end
-		end
-
-		if not(helium.eventHandlers[name]) or not(helium.eventHandlers[name](a, b, c, d, e, f)) then
-			love.handlers[name](a, b, c, d, e, f)
-		end
-	end
-]]
-if helium.conf.AUTO_RUN then
-	function love.run()
-		if love.load then love.load(love.arg.parseGameArguments(arg), arg) end
-
-		-- We don't want the first frame's dt to include time taken by love.load.
-		if love.timer then love.timer.step() end
-
-		local dt = 0
-
-		-- Main loop time.
-		return function()
-			-- Process events.
-			if love.event then
-				love.event.pump()
-				for name, a,b,c,d,e,f in love.event.poll() do
-					if name == "quit" then
-						if not love.quit or not love.quit() then
-							return a or 0
-						end
-					end
-
-					if not(helium.input.eventHandlers[name]) or not(helium.input.eventHandlers[name](a, b, c, d, e, f)) then
-						love.handlers[name](a, b, c, d, e, f)
-					end
-				end
-			end
-
-
-			-- Update dt, as we'll be passing it to update
-			if love.timer then dt = love.timer.step() end
-
-			-- Call update and draw
-			if love.update then love.update(dt) end -- will pass 0 if love.timer is disabled
-			helium.update(dt)
-
-			if love.graphics and love.graphics.isActive() then
-				love.graphics.origin()
-				love.graphics.clear(love.graphics.getBackgroundColor())
-
-				if love.draw then love.draw() end
-				helium.render()
-
-				love.graphics.present()
-			end
-
-			if love.timer then love.timer.sleep(0.001) end
-		end
-	end
-end
-
---Typescript
-helium.helium = helium
 return helium
